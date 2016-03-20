@@ -1,5 +1,17 @@
-# Flowgraphs
+# ARCAM-NET
 
-If your name is not John, you want to be in Flowgraphs
+A SDRN Platform written using GNU Radio Companion and powered by Batman-adv. 
 
-Ignore everything else until I figure out what they do. 
+## Flowgraphs
+
+The flowgraphs that can create the network
+
+## Tools
+
+Helpful scripts for using the SDRN
+
+## WebInterface
+
+The full featured version of ARCAM-Net, most of which is automated. 
+
+ 
