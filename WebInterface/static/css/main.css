@@ -1,0 +1,61 @@
+body, html
+{
+	background-color: #EDEDED !important;
+}
+
+.intro
+{
+	text-align: center;
+	padding-top: 13%;
+	padding-bottom: 13%;
+	margin-bottom: 50px;
+}
+
+.h1
+{
+	height: 100px;
+	text-transform: uppercase;
+	text-align: center;
+	width:100%;
+}
+
+.fullname
+{
+	text-align: center;
+}
+
+
+.top-bar{
+    background: #3f51b5 none repeat scroll 0 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    float: left;
+    height: 200px;
+    width: 100%;
+}
+
+.resume{
+	padding: 30px;
+	text-align: justify;
+}
+
+.tag-line{
+	text-align: center;
+}
+
+.tiny{
+	color:red;
+}
+
+.sidebar{
+	color:grey;
+}
+
+.container{
+	margin-top:50px;
+}
+
+.btn{
+	width:40%;
+	text-align: center;
+}
+
