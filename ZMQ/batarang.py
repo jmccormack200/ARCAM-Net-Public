@@ -12,106 +12,11 @@ from netifaces import interfaces, ifaddresses, AF_INET, AF_LINK # dependency, no
 
 from datetime import datetime
 
+# Our Class Files
+from Node import Node
+from LocalNode import LocalNode
+
 import zmq
-
-class Node():
-    def __init__(self,IP,tun0,bat0,freq,time):
-        self.IP = IP
-        self.tun0 = tun0
-        self.bat0 = bat0
-        self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
-        self.ack = None
-        self.freq = freq
-        self.time = time
-
-
-    def set_freq(self,freq):
-        self.freq = freq
-
-    def set_ack(self, ack=True):
-        self.ack = ack
-
-    def clear_ack(self):
-        self.ack = None
-
-
-
-class LocalNode(Node):
-
-    def __init__(self):
-        self.parseIP()
-        self.parseTun0()
-        self.parseBat0()
-        self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
-        # add frequency?
-
-        # Possibly have a method to check current freq and see if the new freq command
-        # is the same frequency.  
-
-    def parseIP(self):
-        addr = ifaddresses('bat0')
-        self.IP = addr[AF_INET][0]['addr']
-
-    def parseTun0(self):
-        addr = ifaddresses('tun0')
-        self.tun0 = addr[AF_LINK][0]['addr']
-
-    def parseBat0(self):
-        addr = ifaddresses('bat0')
-        self.bat0 = addr[AF_LINK][0]['addr']
-
-class NodeDataTable():
-
-    def __init__(self, node_dict={}, node_list=[], freq=0):
-        self.node_dict = node_dict
-        self.node_list = node_list
-        self.freq = freq
-
-    def update(self, Node, msgDat):
-        self.__updateNodeTable(Node)
-        self.__addACKtoStatusDict(Node)
-
-
-    def append(self, Node):
-        # This may be needed later. The difference being
-        # this function will only insert if the node is new.
-        pass
-
-    def getTable(self):
-        pass
-
-    def getDict(self):
-        pass
-
-    def Flush(self):
-        for key in slef.node_dict:
-            node_dict[key].clear_ack()
-
-    #def printTables():
-
-    def checkIfTableIsFull():
-        isfull = True 
-        for key in node_dict:
-            if node_dict[key].ack == None:
-                return not isfull
-        return isfull
-
-    def __addACKtoStatusDict(self, Node):
-        if self.freq != Node.freq:
-            print("Interfering frequency change")
-            # need to handle rogue changes in freq
-            pass
-        else:
-            node_dict[NodeName] = "OK"
-
-    def __updateNodeTable(self, newNode):
-        if not newNode in node_list:
-            node_list.append(newNode)
-            print ("Node (" + newNode.name + ") added to table")
-        else:
-            print ("Node (" + newNode.name + ") already in table")
-            
-
 
 
 def listen(masked):
