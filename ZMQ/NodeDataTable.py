@@ -1,6 +1,7 @@
 # Our Class Files
 from Node import Node
 from LocalNode import LocalNode
+from threading import Lock
 
 import time
 
@@ -11,6 +12,7 @@ class NodeDataTable():
         self.node_list = node_list
         self.freq = freq
         self.time_out = time_out
+        
 
     def set_freq(self, freq):
         if self.freq == None:
@@ -22,7 +24,7 @@ class NodeDataTable():
     def ackNode(self, newNode):
         newNode.ack = True
         self.__updateDict(newNode)
-        self.__updateNodeTable(newNode)
+        #self.__updateNodeTable(newNode)
 
 
 
@@ -32,7 +34,8 @@ class NodeDataTable():
         # this function will only insert if the node is new.
         if newNode.name not in self.node_dict:
             self.node_dict[newNode.name] = newNode
-            self.__updateNodeTable(newNode)
+            print ("Node (" + newNode.name + ") added to table")
+            #self.__updateNodeTable(newNode)
         else:
             self.node_dict[newNode.name].time = newNode.time
 
@@ -45,17 +48,15 @@ class NodeDataTable():
     def getDict(self):
         pass
 
+    def printDict(self):
+        for key in self.node_dict:
+            print(self.node_dict[key].__dict__)
+
     def Flush(self):
         for key in self.node_dict:
             self.node_dict[key].clear_ack()
 
-    #def printTables():
-    def waitForFullTable(self):
-        isfull = False
-        while not isfull:
-            isfull = self.__checkIfTableIsFull()
-
-    def __checkIfTableIsFull(self):
+    def checkIfTableIsFull(self):
         isfull = True 
         for key in self.node_dict:
             tempNode = self.node_dict[key]
@@ -73,8 +74,10 @@ class NodeDataTable():
             #handle rogue node
         elif newNode.name not in self.node_dict:
             self.node_dict[newNode.name] = newNode
+            print ("Node (" + newNode.name + ") added to table")
         else:
-            self.node_dict[newNode.name].time = newNode.time
+            self.node_dict[newNode.name] = newNode
+            
 
         '''
         if self.freq != node.freq:
@@ -83,7 +86,7 @@ class NodeDataTable():
             node_dict[Node.name] = "OK"
         '''
 
-
+    '''    
     #does not work
     def __updateNodeTable(self, newNode):
         if newNode not in self.node_list:
@@ -92,4 +95,4 @@ class NodeDataTable():
         else:
             #print ("Node (" + newNode.name + ") already in table")
             pass
-            
+    '''        

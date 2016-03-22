@@ -4,7 +4,7 @@
 
 import argparse
 import os
-from threading import Thread
+from threading import Thread, Lock
 
 from Queue import Queue
 
@@ -66,45 +66,54 @@ def handleMsg(msg):
     
     newNode = Node(IP,tun0,bat0, msgDat, time)
 
-    if msgType == 'freqChange':
-        # will need to set the freq of the
-        # NodeDataTable() here. 
-        '''
-        print "Ip = " + str(IP)
-        print "tun0 = " + str(tun0)
-        print "bat0 = " + str(bat0)
-        print "msgDat = " + str(msgDat)
-        print "time = " + str (time)
-        '''
-        print(msg)
-        nodeDT.set_freq(msgDat)
+    lock.acquire()
+    try:
+        if msgType == 'freqChange':
+            '''
+            print "Ip = " + str(IP)
+            print "tun0 = " + str(tun0)
+            print "bat0 = " + str(bat0)
+            print "msgDat = " + str(msgDat)
+            print "time = " + str (time)
+            '''
+            print(msg)
+            nodeDT.set_freq(msgDat)
 
-        freqQue.join()
-        freqQue.put({"IP": IP,"msgDat": msgDat})
+            #freqQue.join()
+            freqQue.put({"IP": IP,"msgDat": msgDat})
 
-    elif msgType == 'ACK':
-        nodeDT.ackNode(newNode)
-        print(msg)
-        print nodeDT.node_dict
+        elif msgType == 'ACK':
+            print(msg)
 
-    elif msgType == 'heartbeat':
-        nodeDT.rcvHeartbeat(newNode)
-        print('*')
-    else:
-        print ("Invalid Message Type")
+            nodeDT.ackNode(newNode)
+            nodeDT.printDict()
+
+        elif msgType == 'heartbeat':
+            nodeDT.rcvHeartbeat(newNode)
+            print('*')
+        else:
+            print ("Invalid Message Type")
+    finally:
+        lock.release()
 
 def freqChangeHandler():
     while True:
         if not freqQue.empty():
             data = freqQue.get()
-            freqQue.task_done()
             IP = data['IP']
             msgDat = data['msgDat']
             print "Got request on Q IP = " + IP + "msg = " + msgDat
             message = localnode.name + " ACK " + msgDat + " " + str(time.time())
             bcast.send_string(message)
 
-            nodeDT.waitForFullTable() #blocks thread
+            
+            isfull = False
+            while not isfull:
+                lock.acquire()
+                try:
+                    isfull = nodeDT.checkIfTableIsFull()
+                finally:
+                    lock.release()
             
             # Here we would send this data out over SocketIO
             # Connect to socket
@@ -112,16 +121,23 @@ def freqChangeHandler():
             print("Change success. Flushing table")
             # Flush the table
             nodeDT.Flush()
-            print(nodeDT.node_dict)
+            #nodeDT.printDict()
+
+            freqQue.task_done()
 
 
     
 
 def pacemaker():
     while True:
-        msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
-        bcast.send_string(msg)
-        time.sleep(1)
+        lock.acquire()
+        try:
+            msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
+            bcast.send_string(msg)
+        finally:
+            lock.release()
+            time.sleep(1)
+
 
 
 def main():
@@ -134,6 +150,9 @@ def main():
     global bcast
     global localnode
     localnode = LocalNode()
+
+    global lock
+    lock = Lock()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("interface", type=str, help="the network interface",
@@ -173,7 +192,11 @@ def main():
             msg = raw_input()
 
             message = localnode.name + " freqChange 915000 " + str(time.time())
-            bcast.send_string(message)
+            lock.acquire()
+            try:
+                bcast.send_string(message)
+            finally:
+                lock.release()
         except KeyboardInterrupt:
             break
 
