@@ -5,14 +5,22 @@ from LocalNode import LocalNode
 
 class NodeDataTable():
 
-    def __init__(self, node_dict={}, node_list=[], freq=0):
+    def __init__(self, node_dict={}, node_list=[], freq=None):
         self.node_dict = node_dict
         self.node_list = node_list
         self.freq = freq
 
+    def set_freq(self, freq):
+        if self.freq == None:
+            self.freq = freq
+        else:
+            print "Throw error, frequency already set"
+
     def update(self, Node, msgDat):
+        Node.set_ack(True)
+        Node.set_freq(msgDat)
         self.__updateNodeTable(Node)
-        self.__addACKtoStatusDict(Node)
+        self.__updateDict(Node)
 
 
     def append(self, Node):
@@ -39,17 +47,21 @@ class NodeDataTable():
                 return not isfull
         return isfull
 
-    def __addACKtoStatusDict(self, Node):
-        if self.freq != Node.freq:
-            print("Interfering frequency change")
-            # need to handle rogue changes in freq
-            pass
+    def __updateDict(self, node):
+        if self.freq == node.freq:
+            self.node_dict[node.name] = node
         else:
-            node_dict[NodeName] = "OK"
+            print "Frequency Mismatch"
+        '''
+        if self.freq != Node.freq:
+            self.node_dict[Node.name] = Node
+        else:
+            node_dict[Node.name] = "OK"
+        '''
 
     def __updateNodeTable(self, newNode):
-        if not newNode in node_list:
-            node_list.append(newNode)
+        if not newNode in self.node_list:
+            self.node_list.append(newNode)
             print ("Node (" + newNode.name + ") added to table")
         else:
             print ("Node (" + newNode.name + ") already in table")

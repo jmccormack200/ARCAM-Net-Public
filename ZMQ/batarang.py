@@ -15,6 +15,7 @@ from datetime import datetime
 # Our Class Files
 from Node import Node
 from LocalNode import LocalNode
+from NodeDataTable import NodeDataTable
 
 import zmq
 
@@ -45,8 +46,8 @@ def listen(masked):
 
 def handleMsg(msg):
     #format    
-    #IP/tun0/bat0: freqChange rx/tx
-    #IP/tun0/bat0: OK rx/tx
+    #IP/tun0/bat0: freqChange rx/tx time
+    #IP/tun0/bat0: OK rx/tx time
     #IP/tun0/bat0: heartbeat rx/tx time
     
     #parse
@@ -54,13 +55,14 @@ def handleMsg(msg):
     sourceDat = msgParts[0].split('/')
     msgType = msgParts[1]
     msgDat = msgParts[2]
-    time = msgParts[3]
+    datetime = msgParts[3]
+
 
     IP = sourceDat[0]
     tun0 = sourceDat[1]
     bat0 = sourceDat[2]
 
-    newNode = Node(IP,tun0,bat0, msgDat, time)
+    newNode = Node(IP,tun0,bat0, msgDat, datetime)
     
 
     if msgType == 'freqChange':
@@ -70,11 +72,15 @@ def handleMsg(msg):
         print "tun0 = " + str(tun0)
         print "bat0 = " + str(bat0)
         print "msgDat = " + str(msgDat)
-        print "time = " + str (time)
+        print "time = " + str (datetime)
+        nodeDT.set_freq(msgDat)
+        print "Frequency of Table is now: " + nodeDT.freq
         freqQue.join()
         freqQue.put({"IP": IP,"msgDat": msgDat})
-    elif msgType == 'OK':
-        #UpdateNodeTable(newNode) <-
+
+    elif msgType == 'ACK':
+        nodeDT.update(newNode, msgDat)
+        print nodeDT.node_dict
         pass
     elif msgType == 'heartbeat':
         #whatever  heartbeats do
@@ -90,6 +96,9 @@ def freqChangeHandler():
             IP = data['IP']
             msgDat = data['msgDat']
             print "Got Data on Q IP = " + IP + "msg = " + msgDat
+            message = message = localnode.name + " ACK " + "915000 " + str(datetime.utcnow())
+            bcast.send_string(message)
+
             # send OK 
             # Wait for full table
             # Here we would send this data out over SocketIO
@@ -102,11 +111,11 @@ def main():
     global freqQue
     freqQue = Queue()
 
-    global nodeStatus
-    nodeDict = dict([('frequency change', 'none')])
+    global nodeDT
+    nodeDT = NodeDataTable()
 
-    global nodeList
-    nodeList = []
+    global bcast
+    global localnode
 
     parser = argparse.ArgumentParser()
     parser.add_argument("interface", type=str, help="the network interface",
@@ -130,16 +139,20 @@ def main():
     
     bcast = ctx.socket(zmq.PUB)
     bcast.bind("tcp://%s:9000" % args.interface)
+
     print("starting chat on %s:9000 (%s.*)" % (args.interface, masked))
+
     localnode = LocalNode()
+
     while True:
         try:
             msg = raw_input()
             #IP/tun0/bat0: freqChange rx/tx
-            message = localnode.name + " freqChange 915000" + str(datetime.utcnow())
+            message = localnode.name + " freqChange 915000 " + str(datetime.utcnow())
             bcast.send_string(message)
         except KeyboardInterrupt:
             break
+            
     bcast.close(linger=0)
     ctx.term()
     listen_thread.stop()
