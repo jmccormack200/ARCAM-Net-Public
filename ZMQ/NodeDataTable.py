@@ -50,7 +50,7 @@ class NodeDataTable():
 
     def printDict(self):
         for key in self.node_dict:
-            print(self.node_dict[key].__dict__)
+            print("{ '" + self.node_dict[key].IP + "' ," + " 'ACK: " + self.node_dict[key].ack + "}")
 
     def Flush(self):
         for key in self.node_dict:
