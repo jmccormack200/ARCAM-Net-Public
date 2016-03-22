@@ -12,7 +12,7 @@ class LocalNode(Node):
         self.parseTun0()
         self.parseBat0()
         self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
-        # add frequency?
+        self.freq = '915000'
 
         # Possibly have a method to check current freq and see if the new freq command
         # is the same frequency.  
@@ -28,3 +28,7 @@ class LocalNode(Node):
     def parseBat0(self):
         addr = ifaddresses('bat0')
         self.bat0 = addr[AF_LINK][0]['addr']
+
+    def updateFreq(self):
+        #load freq from gnuradio
+        pass

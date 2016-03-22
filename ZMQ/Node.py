@@ -4,14 +4,14 @@
 
 
 class Node():
-    def __init__(self,IP,tun0,bat0,freq,datetime):
+    def __init__(self,IP,tun0,bat0,freq,time):
         self.IP = IP
         self.tun0 = tun0
         self.bat0 = bat0
         self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
         self.ack = None
         self.freq = freq
-        self.datetime = datetime
+        self.time = time
 
 
     def set_freq(self,freq):

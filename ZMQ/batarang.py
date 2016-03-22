@@ -10,7 +10,7 @@ from Queue import Queue
 
 from netifaces import interfaces, ifaddresses, AF_INET, AF_LINK # dependency, not in stdlib
 
-from datetime import datetime
+import time
 
 # Our Class Files
 from Node import Node
@@ -18,6 +18,7 @@ from LocalNode import LocalNode
 from NodeDataTable import NodeDataTable
 
 import zmq
+
 
 
 def listen(masked):
@@ -38,7 +39,7 @@ def listen(masked):
     while True:
         try:
             listenerOut = listener.recv_string()
-            print(listenerOut)
+            #print(listenerOut)
             handleMsg(listenerOut)
         except (KeyboardInterrupt, zmq.ContextTerminated):
             break
@@ -49,42 +50,46 @@ def handleMsg(msg):
     #IP/tun0/bat0: freqChange rx/tx time
     #IP/tun0/bat0: OK rx/tx time
     #IP/tun0/bat0: heartbeat rx/tx time
-    
     #parse
+    
     msgParts = msg.split(' ')
     sourceDat = msgParts[0].split('/')
     msgType = msgParts[1]
     msgDat = msgParts[2]
-    datetime = msgParts[3]
+    time = msgParts[3]
 
 
     IP = sourceDat[0]
     tun0 = sourceDat[1]
     bat0 = sourceDat[2]
 
-    newNode = Node(IP,tun0,bat0, msgDat, datetime)
     
+    newNode = Node(IP,tun0,bat0, msgDat, time)
 
     if msgType == 'freqChange':
         # will need to set the freq of the
         # NodeDataTable() here. 
+        '''
         print "Ip = " + str(IP)
         print "tun0 = " + str(tun0)
         print "bat0 = " + str(bat0)
         print "msgDat = " + str(msgDat)
-        print "time = " + str (datetime)
+        print "time = " + str (time)
+        '''
+        print(msg)
         nodeDT.set_freq(msgDat)
-        print "Frequency of Table is now: " + nodeDT.freq
+
         freqQue.join()
         freqQue.put({"IP": IP,"msgDat": msgDat})
 
     elif msgType == 'ACK':
-        nodeDT.update(newNode, msgDat)
+        nodeDT.ackNode(newNode)
+        print(msg)
         print nodeDT.node_dict
-        pass
+
     elif msgType == 'heartbeat':
-        #whatever  heartbeats do
-        pass
+        nodeDT.rcvHeartbeat(newNode)
+        print('*')
     else:
         print ("Invalid Message Type")
 
@@ -95,17 +100,29 @@ def freqChangeHandler():
             freqQue.task_done()
             IP = data['IP']
             msgDat = data['msgDat']
-            print "Got Data on Q IP = " + IP + "msg = " + msgDat
-            message = message = localnode.name + " ACK " + "915000 " + str(datetime.utcnow())
+            print "Got request on Q IP = " + IP + "msg = " + msgDat
+            message = localnode.name + " ACK " + msgDat + " " + str(time.time())
             bcast.send_string(message)
 
-            # send OK 
-            # Wait for full table
+            nodeDT.waitForFullTable() #blocks thread
+            
             # Here we would send this data out over SocketIO
             # Connect to socket
             # Send to change,
+            print("Change success. Flushing table")
             # Flush the table
-            
+            nodeDT.Flush()
+            print(nodeDT.node_dict)
+
+
+    
+
+def pacemaker():
+    while True:
+        msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
+        bcast.send_string(msg)
+        time.sleep(1)
+
 
 def main():
     global freqQue
@@ -116,6 +133,7 @@ def main():
 
     global bcast
     global localnode
+    localnode = LocalNode()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("interface", type=str, help="the network interface",
@@ -128,35 +146,39 @@ def main():
     masked = addr.rsplit('.', 1)[0]
     
     ctx = zmq.Context.instance()
-    
+    bcast = ctx.socket(zmq.PUB)
+    bcast.bind("tcp://%s:9000" % args.interface)
+
+
     listen_thread = Thread(target=listen, args=(masked,))
     listen_thread.daemon = True
     listen_thread.start()
+
+    pacemaker_thread = Thread(target=pacemaker, args=())
+    pacemaker_thread.daemon = True
+    pacemaker_thread.start()
 
     freqQue_thread = Thread(target=freqChangeHandler, args=())
     freqQue_thread.daemon = True
     freqQue_thread.start()
     
-    bcast = ctx.socket(zmq.PUB)
-    bcast.bind("tcp://%s:9000" % args.interface)
+
 
     print("starting chat on %s:9000 (%s.*)" % (args.interface, masked))
 
-    localnode = LocalNode()
+    
 
     while True:
         try:
             msg = raw_input()
-            #IP/tun0/bat0: freqChange rx/tx
-            message = localnode.name + " freqChange 915000 " + str(datetime.utcnow())
+
+            message = localnode.name + " freqChange 915000 " + str(time.time())
             bcast.send_string(message)
         except KeyboardInterrupt:
             break
-            
+
     bcast.close(linger=0)
     ctx.term()
-    listen_thread.stop()
-    freqQue_thread.stop()
 
 if __name__ == '__main__':
     main()
