@@ -6,6 +6,8 @@ import argparse
 import os
 from threading import Thread
 
+from Queue import Queue
+
 from netifaces import interfaces, ifaddresses, AF_INET, AF_LINK # dependency, not in stdlib
 
 import zmq
@@ -65,7 +67,7 @@ def listen(masked):
 def handleMsg(msg):
     #format    
     #IP/tun0/bat0: freqChange rx/tx
-    #IP/tun0/bat0: OK null
+    #IP/tun0/bat0: OK rx/tx
     #IP/tun0/bat0: heartbeat time
     
     #parse
@@ -85,6 +87,8 @@ def handleMsg(msg):
         print "tun0 = " + str(tun0)
         print "bat0 = " + str(bat0)
         print "msgDat = " + str(msgDat)
+        freqQue.join()
+        freqQue.put({"IP": IP,"msgDat": msgDat})
     elif msgType == 'OK':
         #updateChangeTable(IP)
         pass
@@ -98,16 +102,27 @@ def handleMsg(msg):
 def UpdateNodes(IP,tun0,bat0):
     pass
 
+def freqChangeHandler():
+    while True:
+        if not freqQue.empty():
+            data = freqQue.get()
+            freqQue.task_done()
+            IP = data['IP']
+            msgDat = data['msgDat']
+            print "Got Data on Q IP = " + IP + "msg = " + msgDat
+            # Here we would send this data out over SocketIO
+            # Connect to socket
+            # send ACK 
 
 def main():
+    global freqQue
+    freqQue = Queue()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("interface", type=str, help="the network interface",
         choices=interfaces(),
     )
-    parser.add_argument("user", type=str, default=os.environ['USER'],
-        nargs='?',
-        help="Your username",
-    )
+
     args = parser.parse_args()
     inet = ifaddresses(args.interface)[AF_INET]
     addr = inet[0]['addr']
@@ -117,6 +132,10 @@ def main():
     
     listen_thread = Thread(target=listen, args=(masked,))
     listen_thread.start()
+
+    freqQue_thread = Thread(target=freqChangeHandler, args=())
+    freqQue_thread.daemon = True
+    freqQue_thread.start()
     
     bcast = ctx.socket(zmq.PUB)
     bcast.bind("tcp://%s:9004" % args.interface)
@@ -128,12 +147,12 @@ def main():
             #IP/tun0/bat0: freqChange rx/tx
             message = localnode.name + " freqChange 915000"
             bcast.send_string(message)
-            #bcast.send_string("%s: %s" % (args.user, msg))
         except KeyboardInterrupt:
             break
     bcast.close(linger=0)
     ctx.term()
     listen_thread.stop()
+    freqQue_thread.stop()
 
 if __name__ == '__main__':
     main()
