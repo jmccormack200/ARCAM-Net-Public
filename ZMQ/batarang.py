@@ -55,20 +55,20 @@ def handleMsg(msg):
     #IP/tun0/bat0: OK rx/tx time
     #IP/tun0/bat0: heartbeat rx/tx time
     #parse
-    
+    print (msg)
     msgParts = msg.split(' ')
-    sourceDat = msgParts[0].split('/')
+    IP = msgParts[0]
     msgType = msgParts[1]
     msgDat = msgParts[2]
     nodetime = msgParts[3]
 
 
-    IP = sourceDat[0]
-    tun0 = sourceDat[1]
-    bat0 = sourceDat[2]
+    #IP = sourceDat[0]
+    #tun0 = sourceDat[1]
+    #bat0 = sourceDat[2]
 
     
-    newNode = Node(IP,tun0,bat0, msgDat, nodetime)
+    newNode = Node(IP, msgDat, nodetime)
 
     lock.acquire()
 
@@ -157,10 +157,13 @@ def pacemaker(addr):
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+ 
+    
 
     while True:
-        data = repr(str(addr[-3]) + '\n')
-        sock.sendto(data, (UDP_IP, UDP_PORT))
+        msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
+        #data = repr(str(addr[-3:]) + '\n')
+        sock.sendto(msg, (UDP_IP, UDP_PORT))
         time.sleep(1)
 
 def udprec(addr):
@@ -175,7 +178,7 @@ def udprec(addr):
 
     while True:
         msg, addr = sock.recvfrom(bufferSize)
-        print "recieved heartbeat: ", str(addr[-3:])
+        handleMsg(msg)
 
 
 def main():

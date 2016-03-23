@@ -11,7 +11,8 @@ class LocalNode(Node):
         self.parseIP()
         self.parseTun0()
         self.parseBat0()
-        self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
+        #self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
+        self.name = str(self.IP)
         self.freq = '915000'
 
         # Possibly have a method to check current freq and see if the new freq command
