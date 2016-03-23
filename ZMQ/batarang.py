@@ -137,6 +137,7 @@ def freqChangeHandler():
 
             freqQue.task_done()
     
+
 def pacemaker(addr):
     UDP_IP = '<broadcast>'
     UDP_PORT = 9001
@@ -224,7 +225,6 @@ def main():
             message = localnode.name + " freqChange 915000 " + str(time.time())
             lock.acquire()
             try:
-                pass
                 bcast.send_string(message)
             finally:
                 lock.release()

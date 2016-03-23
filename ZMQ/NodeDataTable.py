@@ -7,16 +7,16 @@ import time
 
 class NodeDataTable():
 
-    def __init__(self, node_dict={}, node_list=[], freq=None, time_out=30):
+    def __init__(self, node_dict={}, node_list=[], tblfreq=None, time_out=30):
         self.node_dict = node_dict
         self.node_list = node_list
-        self.freq = freq
+        self.tblfreq = tblfreq
         self.time_out = time_out
         
 
-    def set_freq(self, freq):
-        if self.freq == None:
-            self.freq = freq
+    def set_freq(self, tblfreq):
+        if self.tblfreq == None:
+            self.tblfreq = tblfreq
         else:
             print "Throw error, frequency already set"
 
@@ -40,7 +40,6 @@ class NodeDataTable():
             self.node_dict[newNode.name].time = newNode.time
 
         
-        
 
     def getTable(self):
         pass
@@ -54,7 +53,7 @@ class NodeDataTable():
             
 
     def Flush(self):
-        self.freq = None
+        self.tblfreq = None
         for key in self.node_dict:
             self.node_dict[key].clear_ack()
         print "Flush"
@@ -75,7 +74,7 @@ class NodeDataTable():
 
 
     def __updateDict(self, newNode):
-        if self.freq != newNode.freq:
+        if self.tblfreq != newNode.freq:
             print "Frequency mismatch on " + newNode.IP
             #handle rogue node
         elif newNode.name not in self.node_dict:
@@ -83,22 +82,4 @@ class NodeDataTable():
             print ("Node (" + newNode.name + ") added to table")
         else:
             self.node_dict[newNode.name] = newNode
-            
-
-        '''
-        if self.freq != node.freq:
-            self.node_dict[Node.name] = node
-        else:
-            node_dict[Node.name] = "OK"
-        '''
-
-    '''    
-    #does not work
-    def __updateNodeTable(self, newNode):
-        if newNode not in self.node_list:
-            self.node_list.append(newNode)
-            print ("Node (" + newNode.name + ") added to table")
-        else:
-            #print ("Node (" + newNode.name + ") already in table")
-            pass
-    '''        
+             
