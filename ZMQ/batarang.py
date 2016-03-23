@@ -1,6 +1,7 @@
 
 
 """Decentralized chat example"""
+# http://randalh.blogspot.ie/2012/12/zeromq-true-peer-connectivity-harmony.html
 
 import argparse
 import os
