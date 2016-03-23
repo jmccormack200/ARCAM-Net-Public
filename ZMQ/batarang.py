@@ -43,7 +43,9 @@ def listen(masked):
     while True:
         try:
             listenerOut = listener.recv_string()
-            #print(listenerOut)
+            print
+            print(listenerOut)
+            print
             handleMsg(listenerOut)
         except (KeyboardInterrupt, zmq.ContextTerminated):
             break
@@ -81,17 +83,14 @@ def handleMsg(msg):
             print "msgDat = " + str(msgDat)
             print "time = " + str (time)
             '''
-            print(msg)
+            
             nodeDT.set_freq(msgDat)
 
             
             freqQue.put({"IP": IP,"msgDat": msgDat})
 
         elif msgType == 'ACK':
-            print
-            print(msg)
-            print
-
+            
             nodeDT.ackNode(newNode)
             nodeDT.printDict()
 
@@ -109,10 +108,14 @@ def freqChangeHandler():
             data = freqQue.get()
             IP = data['IP']
             msgDat = data['msgDat']
-            print "Got request on Q IP = " + IP + "msg = " + msgDat
+            print "Got request on Q IP = " + IP + " msg = " + msgDat
             message = localnode.name + " ACK " + msgDat + " " + str(time.time())
-            bcast.send_string(message)
-
+            
+            lock.acquire()
+            try:
+                bcast.send_string(message)
+            finally:
+                lock.release()
             
             isfull = False
             while not isfull:

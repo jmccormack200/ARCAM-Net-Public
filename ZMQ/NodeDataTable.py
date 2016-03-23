@@ -24,14 +24,12 @@ class NodeDataTable():
     def ackNode(self, newNode):
         newNode.ack = True
         self.__updateDict(newNode)
-        #self.__updateNodeTable(newNode)
+       
 
 
 
 
     def rcvHeartbeat(self, newNode):
-        # This may be needed later. The difference being
-        # this function will only insert if the node is new.
         if newNode.name not in self.node_dict:
             self.node_dict[newNode.name] = newNode
             print ("Node (" + newNode.name + ") added to table")
