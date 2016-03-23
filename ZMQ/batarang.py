@@ -79,7 +79,7 @@ def handleMsg(msg):
             print(msg)
             nodeDT.set_freq(msgDat)
 
-            #freqQue.join()
+            freqQue.join()
             freqQue.put({"IP": IP,"msgDat": msgDat})
 
         elif msgType == 'ACK':
@@ -120,7 +120,12 @@ def freqChangeHandler():
             # Send to change,
             print("Change success. Flushing table")
             # Flush the table
-            nodeDT.Flush()
+            lock.acquire()
+            try:
+                nodeDT.Flush()
+            finally:       
+                lock.release()
+           
             #nodeDT.printDict()
 
             freqQue.task_done()
