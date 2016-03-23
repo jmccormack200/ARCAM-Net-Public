@@ -152,7 +152,7 @@ def pacemaker():
 '''
 
 def pacemaker(addr):
-    UDP_IP = '<broadcast'>
+    UDP_IP = '<broadcast>'
     UDP_PORT = 9001
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -160,7 +160,7 @@ def pacemaker(addr):
 
     while True:
         data = repr(str(addr[-3]) + '\n')
-        s.sendto(data, (UDP_IP, UDP_PORT))
+        sock.sendto(data, (UDP_IP, UDP_PORT))
         time.sleep(1)
 
 def udprec(addr):
