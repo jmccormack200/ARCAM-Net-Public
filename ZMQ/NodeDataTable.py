@@ -51,18 +51,21 @@ class NodeDataTable():
     def printDict(self):
         for key in self.node_dict:
             print(self.node_dict[key].__dict__)
+            
 
     def Flush(self):
+        self.freq = None
+        print "Flush"
         for key in self.node_dict:
             self.node_dict[key].clear_ack()
 
+
     def checkIfTableIsFull(self):
         isfull = True 
-        for key in self.node_dict:
-            tempNode = self.node_dict[key]
-            if tempNode.ack == None:
+        for key,value in self.node_dict:
+            if value.ack == None:
                 isfull = False
-                if float(time.time()) - float(tempNode.time) >= float(self.time_out):
+                if float(time.time()) - float(value.time) >= float(self.time_out):
                     del self.node_dict[key]
         return isfull
 

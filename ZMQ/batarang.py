@@ -13,6 +13,8 @@ from netifaces import interfaces, ifaddresses, AF_INET, AF_LINK # dependency, no
 
 import time
 
+import socket
+
 # Our Class Files
 from Node import Node
 from LocalNode import LocalNode
@@ -68,6 +70,7 @@ def handleMsg(msg):
     newNode = Node(IP,tun0,bat0, msgDat, nodetime)
 
     lock.acquire()
+
     try:
         if msgType == 'freqChange':
             '''
@@ -135,7 +138,7 @@ def freqChangeHandler():
 
 
     
-
+'''
 def pacemaker():
     while True:
         lock.acquire()
@@ -145,8 +148,30 @@ def pacemaker():
         finally:
             lock.release()
             time.sleep(1)
+'''
 
+def pacemaker(addr):
+    UDP_PORT = 9001
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind(('',0))
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    while True:
+        data = repr(str(addr[-3]) + '\n')
+        s.sendto(data, ('<broadcast>', UDP_PORT))
+        time.sleep(1)
+
+def udprec(addr):
+    UDP_PORT = 9001
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    sock.bind((addr, UDP_PORT))
+
+    while True:
+        data, recaddr = sock.recvfrom(1024)
+        print "recieved heartbeat: ", str(recaddr[-3:])
 
 def main():
     global freqQue
@@ -169,9 +194,9 @@ def main():
 
     args = parser.parse_args()
     inet = ifaddresses(args.interface)[AF_INET]
-    addr = inet[0]['addr']
+    addr = str(inet[0]['addr'])
     masked = addr.rsplit('.', 1)[0]
-    
+
     ctx = zmq.Context.instance()
     bcast = ctx.socket(zmq.PUB)
     bcast.bind("tcp://%s:9000" % args.interface)
@@ -181,7 +206,7 @@ def main():
     listen_thread.daemon = True
     listen_thread.start()
 
-    pacemaker_thread = Thread(target=pacemaker, args=())
+    pacemaker_thread = Thread(target=pacemaker, args=(addr,))
     pacemaker_thread.daemon = True
     pacemaker_thread.start()
 
@@ -189,6 +214,9 @@ def main():
     freqQue_thread.daemon = True
     freqQue_thread.start()
     
+    udp_thread = Thread(target=udprec, args=(addr,))
+    udp_thread.daemon = True
+    udp_thread.start()
 
 
     print("starting chat on %s:9000 (%s.*)" % (args.interface, masked))
@@ -202,7 +230,8 @@ def main():
             message = localnode.name + " freqChange 915000 " + str(time.time())
             lock.acquire()
             try:
-                bcast.send_string(message)
+                pass
+                #bcast.send_string(message)
             finally:
                 lock.release()
         except KeyboardInterrupt:
