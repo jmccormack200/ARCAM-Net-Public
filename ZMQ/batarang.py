@@ -79,18 +79,20 @@ def handleMsg(msg):
             print(msg)
             nodeDT.set_freq(msgDat)
 
-            freqQue.join()
+            
             freqQue.put({"IP": IP,"msgDat": msgDat})
 
         elif msgType == 'ACK':
+            print
             print(msg)
+            print
 
             nodeDT.ackNode(newNode)
             nodeDT.printDict()
 
         elif msgType == 'heartbeat':
             nodeDT.rcvHeartbeat(newNode)
-            print('*')
+            print(IP + ":" time ":" + str(time.time()))
         else:
             print ("Invalid Message Type")
     finally:
