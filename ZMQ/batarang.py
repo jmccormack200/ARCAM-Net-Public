@@ -14,6 +14,7 @@ from netifaces import interfaces, ifaddresses, AF_INET, AF_LINK # dependency, no
 import time
 
 import socket
+import select
 
 # Our Class Files
 from Node import Node
@@ -151,27 +152,31 @@ def pacemaker():
 '''
 
 def pacemaker(addr):
+    UDP_IP = '<broadcast'>
     UDP_PORT = 9001
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(('',0))
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     while True:
         data = repr(str(addr[-3]) + '\n')
-        s.sendto(data, ('<broadcast>', UDP_PORT))
+        s.sendto(data, (UDP_IP, UDP_PORT))
         time.sleep(1)
 
 def udprec(addr):
     UDP_PORT = 9001
+    bufferSize = 1024
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    sock.bind((addr, UDP_PORT))
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.bind(('', UDP_PORT))
 
     while True:
-        data, recaddr = sock.recvfrom(1024)
-        print "recieved heartbeat: ", str(recaddr[-3:])
+        msg, addr = sock.recvfrom(bufferSize)
+        print "recieved heartbeat: ", str(addr[-3:])
+
 
 def main():
     global freqQue
