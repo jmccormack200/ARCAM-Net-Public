@@ -55,7 +55,7 @@ def handleMsg(msg):
     #IP/tun0/bat0: OK rx/tx time
     #IP/tun0/bat0: heartbeat rx/tx time
     #parse
-    print (msg)
+    
     msgParts = msg.split(' ')
     IP = msgParts[0]
     msgType = msgParts[1]
