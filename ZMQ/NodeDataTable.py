@@ -31,7 +31,9 @@ class NodeDataTable():
     def rcvHeartbeat(self, newNode):
         if newNode.name not in self.node_dict:
             print ("Node (" + newNode.name + ") added to table")
-        self.node_dict[newNode.name] = newNode
+            self.node_dict[newNode.name] = newNode
+        else:
+            self.node_dict[newNode.name].time = newNode.time
 
         
 

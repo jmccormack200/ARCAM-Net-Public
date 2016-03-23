@@ -77,11 +77,11 @@ def handleMsg(msg):
     try:
         if msgType == 'freqChange':
             
-            print "Ip = " + str(IP)
+            #print "Ip = " + str(IP)
             #print "tun0 = " + str(tun0)
             #print "bat0 = " + str(bat0)
-            print "msgDat = " + str(msgDat)
-            print "time = " + str (time)
+            #print "msgDat = " + str(msgDat)
+            #print "time = " + str (time)
             
             
             nodeDT.set_freq(msgDat)
