@@ -57,7 +57,7 @@ def handleMsg(msg):
     sourceDat = msgParts[0].split('/')
     msgType = msgParts[1]
     msgDat = msgParts[2]
-    time = msgParts[3]
+    nodetime = msgParts[3]
 
 
     IP = sourceDat[0]
@@ -65,7 +65,7 @@ def handleMsg(msg):
     bat0 = sourceDat[2]
 
     
-    newNode = Node(IP,tun0,bat0, msgDat, time)
+    newNode = Node(IP,tun0,bat0, msgDat, nodetime)
 
     lock.acquire()
     try:
@@ -93,7 +93,7 @@ def handleMsg(msg):
 
         elif msgType == 'heartbeat':
             nodeDT.rcvHeartbeat(newNode)
-            print(IP + ":" time ":" + str(time.time()))
+            print(IP + ":" + str(nodetime) + ":" + str(time.time()))
         else:
             print ("Invalid Message Type")
     finally:
