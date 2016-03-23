@@ -55,7 +55,7 @@ def handleMsg(msg):
     #IP/tun0/bat0: OK rx/tx time
     #IP/tun0/bat0: heartbeat rx/tx time
     #parse
-    
+
     msgParts = msg.split(' ')
     IP = msgParts[0]
     msgType = msgParts[1]
@@ -97,7 +97,7 @@ def handleMsg(msg):
 
         elif msgType == 'heartbeat':
             nodeDT.rcvHeartbeat(newNode)
-            print(IP[-3:] + " : " + str(float(time.time()) - float(nodetime)))
+            print(IP[-3:] + " : " + str(round((float(time.time()) - float(nodetime)),3)))
         else:
             print ("Invalid Message Type")
     finally:
@@ -136,30 +136,14 @@ def freqChangeHandler():
             #nodeDT.printDict()
 
             freqQue.task_done()
-
-
     
-'''
-def pacemaker():
-    while True:
-        lock.acquire()
-        try:
-            msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
-            bcast.send_string(msg)
-        finally:
-            lock.release()
-            time.sleep(1)
-'''
-
 def pacemaker(addr):
     UDP_IP = '<broadcast>'
     UDP_PORT = 9001
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
- 
-    
-
+     
     while True:
         msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
         #data = repr(str(addr[-3:]) + '\n')
@@ -227,6 +211,8 @@ def main():
     udp_thread.start()
 
 
+
+
     print("starting chat on %s:9000 (%s.*)" % (args.interface, masked))
 
     
@@ -239,7 +225,7 @@ def main():
             lock.acquire()
             try:
                 pass
-                #bcast.send_string(message)
+                bcast.send_string(message)
             finally:
                 lock.release()
         except KeyboardInterrupt:

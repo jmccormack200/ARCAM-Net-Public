@@ -30,6 +30,6 @@ class LocalNode(Node):
         addr = ifaddresses('bat0')
         self.bat0 = addr[AF_LINK][0]['addr']
 
-    def updateFreq(self):
-        #load freq from gnuradio
+    def updateFreq(self,freq):
+        self.freq = freq
         pass
