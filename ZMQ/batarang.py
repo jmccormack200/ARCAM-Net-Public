@@ -93,7 +93,7 @@ def handleMsg(msg):
 
         elif msgType == 'heartbeat':
             nodeDT.rcvHeartbeat(newNode)
-            print(IP + ":" + str(nodetime) + ":" + str(time.time()))
+            print(IP[-3:] + " : " + str(float(time.time()) - float(nodetime)))
         else:
             print ("Invalid Message Type")
     finally:
