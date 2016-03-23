@@ -5,11 +5,11 @@
 
 class Node():
     def __init__(self,IP,freq,time):
-        self.IP = IP
+        self.IP = str(IP)
         #self.tun0 = tun0
         #self.bat0 = bat0
         #self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
-        self.name = str(self.IP)
+        self.name = self.IP
         self.ack = None
         self.freq = freq
         self.time = time

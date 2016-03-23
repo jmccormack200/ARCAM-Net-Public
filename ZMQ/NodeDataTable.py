@@ -48,7 +48,7 @@ class NodeDataTable():
     def printDict(self):
         for key in self.node_dict:
             print({'IP': self.node_dict[key].IP, 'ack': self.node_dict[key].ack, 'freq': self.node_dict[key].freq })
-            
+        print 
 
     def Flush(self):
         self.tblfreq = None
