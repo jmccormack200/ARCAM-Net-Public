@@ -76,13 +76,13 @@ def handleMsg(msg):
 
     try:
         if msgType == 'freqChange':
-            '''
+            
             print "Ip = " + str(IP)
-            print "tun0 = " + str(tun0)
-            print "bat0 = " + str(bat0)
+            #print "tun0 = " + str(tun0)
+            #print "bat0 = " + str(bat0)
             print "msgDat = " + str(msgDat)
             print "time = " + str (time)
-            '''
+            
             
             nodeDT.set_freq(msgDat)
 
@@ -151,7 +151,11 @@ def pacemaker(addr):
     while True:
         msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
         #data = repr(str(addr[-3:]) + '\n')
-        sock.sendto(msg, (UDP_IP, UDP_PORT))
+        lock.acquire()
+        try:
+            sock.sendto(msg, (UDP_IP, UDP_PORT))
+        finally:
+            lock.release()
         time.sleep(1)
 
 def udprec(addr):

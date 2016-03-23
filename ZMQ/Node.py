@@ -11,12 +11,12 @@ class Node():
         #self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0)
         self.name = self.IP
         self.ack = None
-        self.freq = freq
+        self.freq = str(freq)
         self.time = time
 
 
     def set_freq(self,freq):
-        self.freq = freq
+        self.freq = int(freq)
 
     def set_ack(self, ack=True):
         self.ack = ack

@@ -9,7 +9,6 @@ class NodeDataTable():
 
     def __init__(self, node_dict={}, node_list=[], tblfreq=None, time_out=30):
         self.node_dict = node_dict
-        self.node_list = node_list
         self.tblfreq = tblfreq
         self.time_out = time_out
         
@@ -31,11 +30,8 @@ class NodeDataTable():
 
     def rcvHeartbeat(self, newNode):
         if newNode.name not in self.node_dict:
-            self.node_dict[newNode.name] = newNode
             print ("Node (" + newNode.name + ") added to table")
-            #self.__updateNodeTable(newNode)
-        else:
-            self.node_dict[newNode.name].time = newNode.time
+        self.node_dict[newNode.name] = newNode
 
         
 
@@ -63,6 +59,7 @@ class NodeDataTable():
             tempNode = self.node_dict[key]
             if self.node_dict[key].ack == None:
                 if float(time.time()) - float(tempNode.time) >= float(self.time_out):
+                    print ("Node (" + self.node_dict[key].name + ") dropped from table")
                     del self.node_dict[key]
                     continue
                 else:
