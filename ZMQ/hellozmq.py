@@ -10,34 +10,6 @@ from netifaces import interfaces, ifaddresses, AF_INET # dependency, not in stdl
 
 import zmq
 
-class Node():
-    def __init__(IP,tun0,bat0):
-        self.IP = IP
-        self.tun0 = tun0
-        self.bat0 = bat0
-        self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0) 
-
-class LocalNode(Node):
-
-    def __init__():
-        self.IP = parseIP()
-        self.tun0 = parseTun0()
-        self.bat0 = parseBat0()
-        self.name = str(self.IP) + "/" + str(self.tun0) + "/" + str(self.bat0) 
-
-    def parseIP():
-        addr = netifaces.ifaddresses('bat0')
-        self.IP = addr[netifaces.AF_INET][0]['addr']
-
-    def parseTun0():
-        addr = netifaces.ifaddresses('tun0')
-        self.tun0 = addr[netifaces.AF_LINK][0]['addr']
-
-    def parseBat0():
-        addr = netifaces.ifaddresses('bat0')
-        self.bat0 = addr[netifaces.AF_LINK][0]['addr']
-
-
 def listen(masked):
     """listen for messages
     
@@ -49,55 +21,15 @@ def listen(masked):
     """
     ctx = zmq.Context.instance()
     listener = ctx.socket(zmq.SUB)
-    for last in range(99, 110):
-        listener.connect("tcp://{0}.{1}:9001".format(masked, last))
+    for last in range(1, 255):
+        listener.connect("tcp://{0}.{1}:9010".format(masked, last))
     
     listener.setsockopt(zmq.SUBSCRIBE, b'')
     while True:
         try:
-            listenerOut = listener.recv_string()
-            print(listenerOut)
-            handleMsg(listenerOut)
+            print(listener.recv_string())
         except (KeyboardInterrupt, zmq.ContextTerminated):
             break
-
-
-def handleMsg(msg):
-    #format    
-    #IP/tun0/bat0: freqChange rx/tx
-    #IP/tun0/bat0: OK null
-    #IP/tun0/bat0: heartbeat time
-    
-    #parse
-    msgParts = msg.split(' ')
-    sourceDat = msgParts[0].split('/')
-    msgType = msgParts[1]
-    msgDat = msgParts[2]
-
-    IP = sourceDat[0]
-    tun0 = sourceDat[1]
-    bat0 = sourceDat[2]
-
-    UpdateNodes(IP,tun0,bat0)
-
-    if msgType == 'freqChange':
-        print "Ip = " + str(IP)
-        print "tun0 = " + str(tun0)
-        print "bat0 = " + str(bat0)
-        print "msgDat = " + str(msgDat)
-    elif msgType == 'OK':
-        #updateChangeTable(IP)
-        pass
-    elif msgType == 'heartbeat':
-        #whatever  heartbeats do
-        pass
-    else:
-        print ("Invalid Message Type")
-`
-
-def UpdateNodes(IP,tun0,bat0):
-    pass
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -116,19 +48,16 @@ def main():
     ctx = zmq.Context.instance()
     
     listen_thread = Thread(target=listen, args=(masked,))
+    listen_thread.daemon = True
     listen_thread.start()
     
     bcast = ctx.socket(zmq.PUB)
-    bcast.bind("tcp://%s:9001" % args.interface)
-    print("starting chat on %s:9001 (%s.*)" % (args.interface, masked))
-    localnode = LocalNode()
+    bcast.bind("tcp://%s:9010" % args.interface)
+    print("starting chat on %s:9010 (%s.*)" % (args.interface, masked))
     while True:
         try:
             msg = raw_input()
-            #IP/tun0/bat0: freqChange rx/tx
-            message = localnode.name + " freqChange 915000"
-            bcast.send_string(message)
-            #bcast.send_string("%s: %s" % (args.user, msg))
+            bcast.send_string("%s: %s" % (args.user, msg))
         except KeyboardInterrupt:
             break
     bcast.close(linger=0)
