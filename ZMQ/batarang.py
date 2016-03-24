@@ -156,7 +156,7 @@ def pacemaker(addr):
             sock.sendto(msg, (UDP_IP, UDP_PORT))
         finally:
             lock.release()
-            time.sleep(5)
+            time.sleep(1)
 
 def udprec(addr):
     UDP_PORT = 9001
