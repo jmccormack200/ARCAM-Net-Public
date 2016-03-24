@@ -199,6 +199,7 @@ def main():
 
     ctx = zmq.Context.instance()
     bcast = ctx.socket(zmq.PUB)
+    bcast.set(zmq.MULTICAST_HOPS,255)
     bcast.bind("tcp://%s:9000" % args.interface)
 
 
