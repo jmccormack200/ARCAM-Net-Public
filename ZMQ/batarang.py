@@ -82,7 +82,10 @@ def handleMsg(msg):
             #print "bat0 = " + str(bat0)
             #print "msgDat = " + str(msgDat)
             #print "time = " + str (time)
-            
+            if(IP == localnode.IP):
+                break
+                
+            bcast.send(msg)
             
             nodeDT.set_freq(msgDat)
 
@@ -199,9 +202,9 @@ def main():
 
     ctx = zmq.Context.instance()
     bcast = ctx.socket(zmq.PUB)
-    bcast.set(zmq.MULTICAST_HOPS,255)
+    
     bcast.bind("tcp://%s:9000" % args.interface)
-
+    bcast.set(zmq.MULTICAST_HOPS,255)
 
     listen_thread = Thread(target=listen, args=(masked,))
     listen_thread.daemon = True
