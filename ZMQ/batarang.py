@@ -82,9 +82,7 @@ def handleMsg(msg):
             #print "bat0 = " + str(bat0)
             #print "msgDat = " + str(msgDat)
             #print "time = " + str (time)
-            if(IP == localnode.IP):
-                break
-                
+
             bcast.send(msg)
             
             nodeDT.set_freq(msgDat)
