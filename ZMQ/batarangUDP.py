@@ -115,7 +115,9 @@ def broadcastUDP(msg, port=9000):
     UDP_IP = '<broadcast>'
     UDP_PORT = port
 
+    host='192.168.200.255'
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((host,0))
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     #lock.acquire()
     for a in range(0,10):
@@ -129,7 +131,9 @@ def pacemaker(addr):
     UDP_IP = '<broadcast>'
     UDP_PORT = 9001
 
+    host='192.168.200.255'
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((host,0))
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
      
     while True:
@@ -154,6 +158,7 @@ def udprec(addr, port=9000):
 
     while True:
         msg, addr = sock.recvfrom(bufferSize)
+        print addr
         handleMsg(msg)
 
 
