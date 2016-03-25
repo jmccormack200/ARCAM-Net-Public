@@ -108,8 +108,6 @@ def freqChangeHandler():
                 nodeDT.Flush()
             finally:       
                 lock.release()
-           
-            #nodeDT.printDict()
 
             freqQue.task_done()
 
@@ -119,18 +117,13 @@ def broadcastUDP(msg, port=9000):
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    print "get lock?"
     #lock.acquire()
-    print "yes"
     for a in range(0,10):
         try:
             sock.sendto(msg, (UDP_IP, UDP_PORT))
         finally:
-    #        lock.release()
-            time.sleep(1)
-
-
-    
+            pass
+    #        lock.release()  
 
 def pacemaker(addr):
     UDP_IP = '<broadcast>'
@@ -142,11 +135,11 @@ def pacemaker(addr):
     while True:
         msg =localnode.name + " heartbeat " + localnode.freq + " " + str(time.time())
         #data = repr(str(addr[-3:]) + '\n')
-        lock.acquire()
+     #   lock.acquire()
         try:
             sock.sendto(msg, (UDP_IP, UDP_PORT))
         finally:
-            lock.release()
+      #      lock.release()
             time.sleep(1)
 
 def udprec(addr, port=9000):
@@ -160,9 +153,7 @@ def udprec(addr, port=9000):
     sock.bind(('', UDP_PORT))
 
     while True:
-        print "Check"
         msg, addr = sock.recvfrom(bufferSize)
-        print msg
         handleMsg(msg)
 
 
@@ -189,9 +180,6 @@ def main():
     addr = str(inet[0]['addr'])
     masked = addr.rsplit('.', 1)[0]
 
-    ''' 
-    move this to udp
-    '''
 
     pacemaker_thread = Thread(target=pacemaker, args=(addr,))
     pacemaker_thread.daemon = True
@@ -227,8 +215,6 @@ def main():
                 lock.release()
         except KeyboardInterrupt:
             break
-
-    ctx.term()
 
 if __name__ == '__main__':
     main()
