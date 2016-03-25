@@ -122,7 +122,7 @@ def broadcastUDP(msg, port=9000):
     #lock.acquire()
     for a in range(0,10):
         try:
-            sock.sendto(msg, (UDP_IP, UDP_PORT))
+            sock.sendto(msg, (host, UDP_PORT))
         finally:
             pass
     #        lock.release()  
@@ -141,7 +141,7 @@ def pacemaker(addr):
         #data = repr(str(addr[-3:]) + '\n')
      #   lock.acquire()
         try:
-            sock.sendto(msg, (UDP_IP, UDP_PORT))
+            sock.sendto(msg, (host, UDP_PORT))
         finally:
       #      lock.release()
             time.sleep(1)
