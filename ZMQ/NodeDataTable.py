@@ -14,15 +14,17 @@ class NodeDataTable():
         self.time_out = time_out
         
 
-    def set_freq(self, tblfreq,time):
+    def set_freq(self, freq,time):
         if self.tblfreq == None:
-            self.tblfreq = tblfreq
+            self.tblfreq = freq
             self.tblTime = time
             return True
         else:
+            if time == self.tblTime and freq == self.tblFreq:
+                return True
             if time < self.tblTime:
                 self.Flush
-                self.tblfreq = tblfreq
+                self.tblfreq = freq
                 self.tblTime = time
                 print "Current table out of date, flushing"
                 return True

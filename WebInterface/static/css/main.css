@@ -59,3 +59,7 @@ body, html
 	text-align: center;
 }
 
+#input{
+	padding-right: 50px
+	padding-left: 50px
+}

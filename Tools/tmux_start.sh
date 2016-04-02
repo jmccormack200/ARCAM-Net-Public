@@ -39,9 +39,9 @@ connect(){
 
 	tmux send-keys "sleep 10s" C-m
 	
-	tmux send-keys "sudo python ../ZMQ/batarang.py bat0" C-m
+	#tmux send-keys "sudo python ../ZMQ/batarang.py bat0" C-m
 
-	#tmux send-keys "echo $2 | sudo -S batctl o -w" C-m
+	tmux send-keys "echo $2 | sudo -S batctl o -w" C-m
 
 }
 
@@ -63,8 +63,7 @@ IP[0]="100"
 IP[1]="101"
 IP[2]="103"
 IP[3]="104"
-IP[4]="105"
-IP[5]="106"
+IP[4]="106"
 
 # Start Session
 tmux -2 new-session -d -s $SESSION
