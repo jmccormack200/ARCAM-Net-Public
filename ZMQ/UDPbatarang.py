@@ -21,8 +21,6 @@ from Node import Node
 from LocalNode import LocalNode
 from NodeDataTable import NodeDataTable
 
-import zmq
-
 
 class Batarang():
 
@@ -95,13 +93,11 @@ class Batarang():
                 #print "time = " + str (time)
                 
                 
-                self.nodeDT.set_freq(msgDat)
-
-                
-                self.freqQue.put({"IP": IP,"msgDat": msgDat})
+                if(self.nodeDT.set_freq(msgDat,time)):
+                    self.freqQue.put({"IP": IP,"msgDat": msgDat, "time" : time})
+                self.nodeDT.ackNode(newNode)
 
             elif msgType == 'ACK':
-
                 self.nodeDT.ackNode(newNode)
                 self.nodeDT.printDict()
 
@@ -119,20 +115,19 @@ class Batarang():
                 data = self.freqQue.get()
                 IP = data['IP']
                 msgDat = data['msgDat']
+                time = data['time']
                 print "Got request on Q IP = " + IP + " msg = " + msgDat
-                message = self.localnode.name + " ACK " + msgDat + " " + str(time.time())
-                
-                self.lock.acquire()
-                try:
-                    self.broadcastUDP(message,9000)
-                finally:
-                    self.lock.release()
-                
+                message = self.localnode.name + " freqChange " + msgDat + " " + time
+
+
                 isfull = False
                 while not isfull:
                     self.lock.acquire()
                     try:
+                        self.broadcastUDP(message,9000)
+                        #self.distributeMsg(message,9000)
                         isfull = self.nodeDT.checkIfTableIsFull()
+                        self.nodeDT.printDict()
                     finally:
                         self.lock.release()
                 
@@ -149,8 +144,28 @@ class Batarang():
 
                 self.freqQue.task_done()
 
-    def broadcastUDP(self, msg, port=9000):
-        UDP_IP = '<broadcast>'
+    def distributeMsg(self, msg,port):
+        for k,node in nodeDT.node_dict:
+            if node.ACK == False:
+                sendUdpMsg(msg,node.IP,port)
+
+
+    def sendUdpMsg(self, msg, IP,port=9000):
+        UDP_IP = str(IP)
+        UDP_PORT = port
+
+        host= str(IP)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind((host,0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        #lock.acquire()
+        try:
+            sock.sendto(msg, (host, UDP_PORT))
+        finally:
+            pass
+        #        lock.release()  
+
+    def broadcastUDP(self, msg, port=9000, numPackets=1):
         UDP_PORT = port
 
         host='192.168.200.255'
@@ -158,7 +173,7 @@ class Batarang():
         sock.bind((host,0))
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         #lock.acquire()
-        for a in range(0,10):
+        for a in range(0,numPackets):
             try:
                 sock.sendto(msg, (host, UDP_PORT))
             finally:
@@ -166,7 +181,6 @@ class Batarang():
         #        lock.release()  
 
     def pacemaker(self, addr):
-        UDP_IP = '<broadcast>'
         UDP_PORT = 9001
 
         host='192.168.200.255'

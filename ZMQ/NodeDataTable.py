@@ -7,17 +7,29 @@ import time
 
 class NodeDataTable():
 
-    def __init__(self, node_dict={}, node_list=[], tblfreq=None, time_out=30):
+    def __init__(self, node_dict={}, node_list=[], tblfreq=None, tblTime=None, time_out=30):
         self.node_dict = node_dict
         self.tblfreq = tblfreq
+        self.tblTime = tblTime
         self.time_out = time_out
         
 
-    def set_freq(self, tblfreq):
+    def set_freq(self, tblfreq,time):
         if self.tblfreq == None:
             self.tblfreq = tblfreq
+            self.tblTime = time
+            return True
         else:
-            print "Throw error, frequency already set"
+            if time < self.tblTime:
+                self.Flush
+                self.tblfreq = tblfreq
+                self.tblTime = time
+                print "Current table out of date, flushing"
+                return True
+            else:
+                print "Throw error, sender tbl out of date"
+                return False
+                
 
 
     def ackNode(self, newNode):
@@ -25,20 +37,12 @@ class NodeDataTable():
         self.__updateDict(newNode)
        
 
-
-
-
     def rcvHeartbeat(self, newNode):
         if newNode.name not in self.node_dict:
             print ("Node (" + newNode.name + ") added to table")
             self.node_dict[newNode.name] = newNode
         else:
             self.node_dict[newNode.name].time = newNode.time
-
-        
-
-    def getTable(self):
-        pass
 
     def getDict(self):
         pass
