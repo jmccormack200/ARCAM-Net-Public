@@ -20,7 +20,7 @@ class NodeDataTable():
             self.tblTime = time
             return True
         else:
-            if time == self.tblTime and freq == self.tblFreq:
+            if time == self.tblTime and freq == self.tblfreq:
                 return True
             if time < self.tblTime:
                 self.Flush
