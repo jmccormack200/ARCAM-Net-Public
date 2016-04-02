@@ -3,11 +3,12 @@ from Node import Node
 from LocalNode import LocalNode
 from threading import Lock
 
+
 import time
 
 class NodeDataTable():
 
-    def __init__(self, node_dict={}, node_list=[], tblfreq=None, tblTime=None, time_out=30):
+    def __init__(self, node_dict={}, node_list=[], tblfreq=None, tblTime=None, time_out=30.0):
         self.node_dict = node_dict
         self.tblfreq = tblfreq
         self.tblTime = tblTime
@@ -18,7 +19,7 @@ class NodeDataTable():
         if self.tblfreq == None:
             self.tblfreq = freq
             self.tblTime = time
-            return True
+            return False
         else:
             if time == self.tblTime and freq == self.tblfreq:
                 return True
@@ -29,8 +30,8 @@ class NodeDataTable():
                 print "Current table out of date, flushing"
                 return True
             else:
-                print "Throw error, sender tbl out of date"
-                return False
+                raise Exception("Throw error, sender tbl out of date")
+                
                 
 
 
@@ -64,14 +65,9 @@ class NodeDataTable():
     def checkIfTableIsFull(self):
         isfull = True 
         for key in self.node_dict:
-            tempNode = self.node_dict[key]
-            if self.node_dict[key].ack == None:
-                if float(time.time()) - float(tempNode.time) >= float(self.time_out):
-                    print ("Node (" + self.node_dict[key].name + ") dropped from table")
-                    del self.node_dict[key]
-                    continue
-                else:
-                    isfull = False
+            if self.node_dict[key].ack != True:
+                isfull = False
+                break
         return isfull
 
 

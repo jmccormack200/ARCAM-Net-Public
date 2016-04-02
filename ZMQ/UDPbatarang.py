@@ -92,13 +92,15 @@ class Batarang():
                 #print "msgDat = " + str(msgDat)
                 #print "time = " + str (time)
                 
+                print msg
                 
                 if(self.nodeDT.set_freq(msgDat,time)):
-                    self.nodeDT.ackNode(newNode)
-                    self.freqQue.put({"IP": IP,"msgDat": msgDat, "time" : time})
                     self.nodeDT.printDict()
-                
+                else:
+                    self.freqQue.put({"IP": IP,"msgDat": msgDat, "time" : time})
 
+                self.nodeDT.ackNode(newNode)
+                
             elif msgType == 'ACK':
                 self.nodeDT.ackNode(newNode)
                 self.nodeDT.printDict()
@@ -126,8 +128,8 @@ class Batarang():
                 while not isfull:
                     self.lock.acquire()
                     try:
-                        self.broadcastUDP(message,9000)
-                        #self.distributeMsg(message,9000)
+                        #self.broadcastUDP(message,9000)
+                        self.distributeMsg(message,9000)
                         isfull = self.nodeDT.checkIfTableIsFull()
                     finally:
                         self.lock.release()
@@ -146,9 +148,9 @@ class Batarang():
                 self.freqQue.task_done()
 
     def distributeMsg(self, msg,port):
-        for k,node in nodeDT.node_dict:
-            if node.ACK == False:
-                sendUdpMsg(msg,node.IP,port)
+        for key in self.nodeDT.node_dict:
+            if self.nodeDT.node_dict[key].ack != True:
+                self.sendUdpMsg(msg,node.IP,port)
 
 
     def sendUdpMsg(self, msg, IP,port=9000):
@@ -211,7 +213,7 @@ class Batarang():
 
         while True:
             msg, addr = sock.recvfrom(bufferSize)
-            print addr
+            #print msg, addr
             self.handleMsg(msg)
 
     def start(self):
