@@ -117,7 +117,7 @@ class Batarang():
                 msgDat = data['msgDat']
                 time = data['time']
                 print "Got request on Q IP = " + IP + " msg = " + msgDat
-                message = self.localnode.name + " freqChange " + msgDat + " " + time
+                message = self.localnode.name + " freqChange " + msgDat + " " + str(time)
 
 
                 isfull = False
