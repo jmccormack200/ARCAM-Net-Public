@@ -96,10 +96,11 @@ class Batarang():
                 
                 if(self.nodeDT.set_freq(msgDat,time)):
                     self.nodeDT.printDict()
+                    self.nodeDT.ackNode(newNode)
                 else:
                     self.freqQue.put({"IP": IP,"msgDat": msgDat, "time" : time})
 
-                self.nodeDT.ackNode(newNode)
+                
 
             elif msgType == 'ACK':
                 self.nodeDT.ackNode(newNode)
@@ -128,8 +129,8 @@ class Batarang():
                 while not isfull:
                     self.lock.acquire()
                     try:
-                        #self.broadcastUDP(message,9000)
-                        self.distributeMsg(message,9000)
+                        self.broadcastUDP(message,9000)
+                        #self.distributeMsg(message,9000)
                         isfull = self.nodeDT.checkIfTableIsFull()
                     finally:
                         self.lock.release()
