@@ -100,7 +100,7 @@ class Batarang():
                     self.freqQue.put({"IP": IP,"msgDat": msgDat, "time" : time})
 
                 self.nodeDT.ackNode(newNode)
-                
+
             elif msgType == 'ACK':
                 self.nodeDT.ackNode(newNode)
                 self.nodeDT.printDict()
@@ -150,7 +150,7 @@ class Batarang():
     def distributeMsg(self, msg,port):
         for key in self.nodeDT.node_dict:
             if self.nodeDT.node_dict[key].ack != True:
-                self.sendUdpMsg(msg,node.IP,port)
+                self.sendUdpMsg(msg,self.nodeDT.node_dict[key].IP,port)
 
 
     def sendUdpMsg(self, msg, IP,port=9000):
@@ -166,6 +166,7 @@ class Batarang():
             sock.sendto(msg, (host, UDP_PORT))
         finally:
             pass
+        #close socket?
         #        lock.release()  
 
     def broadcastUDP(self, msg, port=9000, numPackets=1):
