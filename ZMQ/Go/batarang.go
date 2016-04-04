@@ -9,8 +9,7 @@ import (
     "os/signal"
     //"io"
     "bufio"
-    "encoding/binary"
-    "bytes"
+    "encoding/json"
     //"sync"
     "time"
     "fmt"
@@ -27,7 +26,7 @@ func check(e error) {
 		panic(e)
 	}
 }
-func pcheck(e error, dat string) {
+func catch(e error, dat []byte) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
         fmt.Println("Periferal data: ", dat)
@@ -85,11 +84,10 @@ func heartbeats(port int) {
     for localNode.Alive{
         hb.time = time.Now().Format(time.StampMilli)
         
-        buf := &bytes.Buffer{}
-        err := binary.Write(buf, binary.BigEndian, hb)
-        check(err)
+        data,err := json.Marshal(hb)
+        catch(err, data)
         
-        _, err = socket.Write(buf.Bytes())
+        _, err = socket.Write(data)
         pass(err)
         
         time.Sleep(1)
@@ -108,16 +106,14 @@ func hbListen(port int, hbChan chan<- Message){
 
     
     for localNode.Alive {
-        
-        buf := &bytes.Buffer{}
-        _,err := socket.Read(buf.Bytes())
-        pass(err)
+        var data []byte
+        _,err = socket.Read(data)
+        catch(err,data)
         
         msg := Message{}
         
-        err = binary.Read(buf, binary.BigEndian, &msg)
+        err = json.Unmarshal(data,msg)
         check (err)
-        
         
         hbChan<- msg
     }
@@ -135,15 +131,15 @@ func listen(port int, msgChan chan<- Message){
     defer socket.Close()
     
    for localNode.Alive{
-        buf := &bytes.Buffer{}
-        _,err := socket.Read(buf.Bytes())
-        pass(err)
+        var data []byte 
+        
+        _,err = socket.Read(data)
+        catch(err,data)
         
         msg := Message{}
         
-        err = binary.Read(buf, binary.BigEndian, &msg)
+        err = json.Unmarshal(data,msg)
         check (err)
-        
         
         msgChan<- msg
     }
@@ -165,16 +161,11 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
     for localNode.Alive {
         select{
             case msg:= <-in:
-                msg.time = time.Now().Format(time.StampMilli)
+                data,err := json.Marshal(msg)
+                catch(err, data)
                 
-                buf := &bytes.Buffer{}
-                err := binary.Write(buf, binary.BigEndian, msg)
-                check(err)
-                
-                _, err = socket.Write(buf.Bytes())
+                _, err = socket.Write(data)
                 pass(err)
-                
-                time.Sleep(1)
             case <-q:
                 localNode.Alive = false
                 return
