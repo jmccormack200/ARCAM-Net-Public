@@ -1,7 +1,7 @@
 //Go implementation of batarang
 
 
-package ARCAM
+package main
 
 import (
     "net"
@@ -17,10 +17,13 @@ import (
     "flag"
 )
 
+//Globals
+var localNode Node
 
 func check(e error) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
+        localNode.Alive = false
 		panic(e)
 	}
 }
@@ -57,8 +60,7 @@ type NodeTable struct{
     nodeDict   map[string]Node
 }
 
-//Globals
-var localNode Node
+
 
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
@@ -188,13 +190,19 @@ func handleMessages(hbChan,msgChan<-chan Message){
 }
 
 
-func fakeMessage(input chan<- Message){
+func fakeMessage(input chan<- Message, q <-chan os.Signal){
     var msg = Message{localNode.IP.String(), "FC", "915000", time.Now().Format(time.StampMilli)}
     
     for{
-        bufio.NewReader(os.Stdin).ReadBytes('\n')
-        msg.time = time.Now().Format(time.StampMilli)
-        input <- msg
+        select{
+            case <-q:
+                localNode.Alive = false
+                return 
+            default:
+                bufio.NewReader(os.Stdin).ReadBytes('\n')
+                msg.time = time.Now().Format(time.StampMilli)
+                input <- msg
+        }
     }
 }
 
@@ -208,29 +216,25 @@ func main() {
     }
     
     //Parse Interface
-    ifaces, err := net.Interfaces()
+    iface, err := net.InterfaceByName(arg)
     check(err)
+    
     var ip net.IP
-    for _,i := range ifaces{
-        if i.Name == arg {
-            addrs, err := i.Addrs()
-            check(err)
-            for _, addr:= range addrs{
-                switch v := addr.(type){
-                    case *net.IPNet:
-                        ip = v.IP
-                    case *net.IPAddr:
-                        ip = v.IP
-                }
-            }
+    addrs, err := iface.Addrs()
+    check(err)
+    for _, addr:= range addrs{
+        switch v := addr.(type){
+            case *net.IPNet:
+                ip = v.IP
+            case *net.IPAddr:
+                ip = v.IP
         }
     }
     
 
+
     //Local node initialization
-    var localNode = Node{ip,true,true,time.Now()}
-    defer func(localNode Node){localNode.Alive = false}(localNode)
-    
+    localNode = Node{ip,true,true,time.Now()}
     
     //Channels
     msgChan := make(chan Message)
@@ -257,6 +261,6 @@ func main() {
     //Outgoing messages
     go sendLoop(msgPort,in,q)
     
-    fakeMessage(in)
+    fakeMessage(in,q)
 }
 
