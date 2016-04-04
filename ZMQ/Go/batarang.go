@@ -31,7 +31,7 @@ func pass(e error) {
 
 //Node structure for node data
 type Node struct{
-    batIP   string
+    IP   string
     ACK     bool
     Alive   bool
     hbTime  float32
@@ -66,14 +66,14 @@ func beat(port int){
     
     for localNode.Alive {
         
-        hb := Message(localNode.name, 'HB', nil, (string) time.Now())
+        hb := Message(source = localNode.IP, msgType = "HB", msgDat = nil, time = (string) time.Now())
         _,err = socket.WritetoUDP(hb)
         pass(err)
         time.Sleep(1)
     }
 }
 //Stethescope listens on port for heartbeats and sends them through the channel
-func stethescope(port int, hb_chan chan<-){
+func stethescope(port int, hb_chan chan<- Message){
     
     socket, err := net.ListenUDP("udp4", &net.UDPAddr{
         IP:   net.IPv4(192,168,200, 0),
@@ -91,7 +91,7 @@ func stethescope(port int, hb_chan chan<-){
 }
 
 // Listen and pass messages on port to the msg channel
-func listen(port int, msg_chan chan<-){
+func listen(port int, msg_chan chan<- Message){
     
     socket, err := net.ListenUDP("udp4", &net.UDPAddr{
         IP:   net.IPv4(192,168,200, 0),
@@ -127,16 +127,17 @@ func sendLoop(port int){
     for localNode.Alive {
         select{
             case <-in:
-                hb := Message(localNode.name, 'FC', '915000', (string) time.Now())
-                _,err = socket.WritetoUDP(hb)
+                msg := Message(localNode.name, "FC", "915000", (string) time.Now())
+                _,err = socket.WritetoUDP(msg)
                 pass(err)
             case <- c:
+                localNode.Alive = false
                 return
         }
     }
 }
-
-func handleMessages(hb_chan,msg_chan<-chan){
+//Loop sorting chanels to specific processes
+func handleMessages(hb_chan,msg_chan<-chan Message){
     for localNode.Alive{
         select{
             case hb <-hb_chan:
