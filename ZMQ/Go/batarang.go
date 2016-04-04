@@ -27,11 +27,18 @@ func check(e error) {
 		panic(e)
 	}
 }
-
+func pcheck(e error, dat string) {
+	if e != nil {
+		fmt.Println("ERROR: ", e.Error())
+        fmt.Println("Periferal data: ", dat)
+        localNode.Alive = false
+		panic(e)
+	}
+}
 
 func pass(e error) {
 	if e != nil {
-		fmt.Println("Passing error : ", e.Error())
+		fmt.Println("Ignoring error: ", e.Error())
 	}
 }
 
@@ -211,7 +218,7 @@ func main() {
     hbPort := 9001
     msgPort := 9000
     arg := flag.Arg(0)
-    if arg == " "{
+    if arg == ""{
         arg = "bat0"
     }
     
