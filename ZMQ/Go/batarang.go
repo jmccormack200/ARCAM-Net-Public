@@ -7,8 +7,11 @@ import (
     "net"
     "os"
     "os/signal"
-    "io"
-    "sync"
+    //"io"
+    "bufio"
+    "encoding/binary"
+    "bytes"
+    //"sync"
     "time"
     "fmt"
     "flag"
@@ -17,24 +20,25 @@ import (
 
 func check(e error) {
 	if e != nil {
-		fmt.Printf("ERROR: ", e.Error())
+		fmt.Println("ERROR: ", e.Error())
 		panic(e)
 	}
 }
 
+
 func pass(e error) {
 	if e != nil {
-		fmt.Printf("Passing error : ", e.Error())
+		fmt.Println("Passing error : ", e.Error())
 	}
 }
 
 
 //Node structure for node data
 type Node struct{
-    IP   string
+    IP      net.IP
     ACK     bool
     Alive   bool
-    hbTime  float32
+    hbTime  time.Time
 }
 //Message structure for message data
 type Message struct{
@@ -43,37 +47,48 @@ type Message struct{
     msgDat  string
     time    string
 }
+func (msg Message) String() string{
+    return (msg.source + " " + msg.msgType + " " + msg.msgDat + " " + msg.time)
+}
 //NodeTable structure
 type NodeTable struct{
     startTime   float32
     header      string
-    node_dict   map[string]Node
+    nodeDict   map[string]Node
 }
 
 //Globals
 var localNode Node
 
 //Heart beats tell other nodes that current node is still alive
-func beat(port int){
+func heartbeats(port int) {
     
-    BROADCAST_IPv4 := net.IPv4(192,168,200,255)
+    BROADCASTIPv4 := net.IPv4(192,168,200,255)
     socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
-        IP:   BROADCAST_IPv4,
+        IP:   BROADCASTIPv4,
         Port: port,
     })
     check(err)
     defer socket.Close()
     
-    for localNode.Alive {
+    var hb = Message{localNode.IP.String(), "HB", "none", time.StampMilli}
+    
+    for localNode.Alive{
+        hb.time = time.Now().Format(time.StampMilli)
         
-        hb := Message(source = localNode.IP, msgType = "HB", msgDat = nil, time = (string) time.Now())
-        _,err = socket.WritetoUDP(hb)
+        buf := &bytes.Buffer{}
+        err := binary.Write(buf, binary.BigEndian, hb)
+        check(err)
+        
+        _, err = socket.Write(buf.Bytes())
         pass(err)
+        
         time.Sleep(1)
     }
 }
-//Stethescope listens on port for heartbeats and sends them through the channel
-func stethescope(port int, hb_chan chan<- Message){
+
+//hbListen listens on port for heartbeats and sends them through the channel
+func hbListen(port int, hbChan chan<- Message){
     
     socket, err := net.ListenUDP("udp4", &net.UDPAddr{
         IP:   net.IPv4(192,168,200, 0),
@@ -81,17 +96,27 @@ func stethescope(port int, hb_chan chan<- Message){
     })
     check(err)
     defer socket.Close()
-    var msg []byte
-    for localNode,Alive {
-        _,err := socket.ReadFromUDP(msg)
-        pass (err)
-        hb_chan <-(string) msg
+
+    
+    for localNode.Alive {
+        
+        buf := &bytes.Buffer{}
+        _,err := socket.Read(buf.Bytes())
+        pass(err)
+        
+        msg := Message{}
+        
+        err = binary.Read(buf, binary.BigEndian, &msg)
+        check (err)
+        
+        
+        hbChan<- msg
     }
     
 }
 
 // Listen and pass messages on port to the msg channel
-func listen(port int, msg_chan chan<- Message){
+func listen(port int, msgChan chan<- Message){
     
     socket, err := net.ListenUDP("udp4", &net.UDPAddr{
         IP:   net.IPv4(192,168,200, 0),
@@ -99,90 +124,139 @@ func listen(port int, msg_chan chan<- Message){
     })
     check(err)
     defer socket.Close()
-    var msg []byte
-    for localNode,Alive {
-        socket.ReadFromUDP(msg)
-        msg_chan <-(string) msg
-    }
     
+   for localNode.Alive{
+        buf := &bytes.Buffer{}
+        _,err := socket.Read(buf.Bytes())
+        pass(err)
+        
+        msg := Message{}
+        
+        err = binary.Read(buf, binary.BigEndian, &msg)
+        check (err)
+        
+        
+        msgChan<- msg
+    }
 }
+
 //Our Loop waiting for input or a keyboard interrupt
-func sendLoop(port int){   
-    BROADCAST_IPv4 := net.IPv4(192,168,200,255)
+func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
+    BROADCASTIPv4 := net.IPv4(192,168,200,255)
     socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
-        IP:   BROADCAST_IPv4,
+        IP:   BROADCASTIPv4,
         Port: port,
     })
     check(err)
     defer socket.Close()
     
-    c:= make(chan os.Signal, 1)
-    signal.Notify(c,os.Interrupt)
-    defer close(c)
+
     
-    in:= make(chan os.Signal, 1)
-    signal.Notify(in,os.Stdin)
-    defer close(in)
     
     for localNode.Alive {
         select{
-            case <-in:
-                msg := Message(localNode.name, "FC", "915000", (string) time.Now())
-                _,err = socket.WritetoUDP(msg)
+            case msg:= <-in:
+                msg.time = time.Now().Format(time.StampMilli)
+                
+                buf := &bytes.Buffer{}
+                err := binary.Write(buf, binary.BigEndian, msg)
+                check(err)
+                
+                _, err = socket.Write(buf.Bytes())
                 pass(err)
-            case <- c:
+                
+                time.Sleep(1)
+            case <-q:
                 localNode.Alive = false
                 return
         }
     }
 }
 //Loop sorting chanels to specific processes
-func handleMessages(hb_chan,msg_chan<-chan Message){
+func handleMessages(hbChan,msgChan<-chan Message){
+
     for localNode.Alive{
         select{
-            case hb <-hb_chan:
-            //handle heartbeats
-            case hb <-msg_chan:
-            //handle other messages
+            case hb := <-hbChan:
+                fmt.Println(hb)
+                //handle heartbeats
+            case msg := <-msgChan:
+                fmt.Println(msg)
+                //handle other messages
         }
     }  
 }
 
 
+func fakeMessage(input chan<- Message){
+    var msg = Message{localNode.IP.String(), "FC", "915000", time.Now().Format(time.StampMilli)}
+    
+    for{
+        bufio.NewReader(os.Stdin).ReadBytes('\n')
+        msg.time = time.Now().Format(time.StampMilli)
+        input <- msg
+    }
+}
+
+
 func main() {
-    hb_port := 9001
-    msg_port := 9000
-    arg = flag.Arg(0)
-    if arg == nil {
-        arg = 'bat0'
+    hbPort := 9001
+    msgPort := 9000
+    arg := flag.Arg(0)
+    if arg == " "{
+        arg = "bat0"
     }
     
-    
-    iface, err := net.Interface()[arg]
-    if err != nil {
-        fmt.Printf("Available interfaces...", net.Interfaces())
+    //Parse Interface
+    ifaces, err := net.Interfaces()
+    check(err)
+    var ip net.IP
+    for _,i := range ifaces{
+        if i.Name == arg {
+            addrs, err := i.Addrs()
+            check(err)
+            for _, addr:= range addrs{
+                switch v := addr.(type){
+                    case *net.IPNet:
+                        ip = v.IP
+                    case *net.IPAddr:
+                        ip = v.IP
+                }
+            }
+        }
     }
-    check(err)
     
-    IP, err := iface['addr']
-    check(err)
-    
-    localNode = Node{IP,false,(float32)time.Now()}
-    defer localNode.Alive = false
-    
-    msg_chan = make(chan Message)
-    hb_chan = make(chan Message)
-    
-    go handleMessages(hb_chan, msg_chan)
-    defer close(msg_chan)
-    defer close(hb_chan)
-    
-    go heartbeats(hb_port)
-    go stethescope(hb_port,hb_chan)
+
+    //Local node initialization
+    var localNode = Node{ip,true,true,time.Now()}
+    defer func(localNode Node){localNode.Alive = false}(localNode)
     
     
-    go listen(msg_port, msg_chan) 
-    //our sending loop
-    sendLoop(msg_port)
+    //Channels
+    msgChan := make(chan Message)
+    defer close(msgChan)
+    
+    hbChan := make(chan Message)
+    defer close(hbChan)
+    
+    q:= make(chan os.Signal, 1)
+    signal.Notify(q,os.Interrupt)
+    defer close(q)
+    
+    in:= make(chan Message, 1)
+    defer close(in)
+    
+    //Goroutines
+    go handleMessages(hbChan, msgChan)
+    //Heartbeats
+    go heartbeats(hbPort)
+    ///Listen for heartbeats
+    go hbListen(hbPort,hbChan)
+    //listen for messages
+    go listen(msgPort, msgChan) 
+    //Outgoing messages
+    go sendLoop(msgPort,in,q)
+    
+    fakeMessage(in)
 }
 
