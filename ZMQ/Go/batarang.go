@@ -14,11 +14,15 @@ import (
     "time"
     "fmt"
     "flag"
+    "nodepkg"
+    "customerr"
+    
 )
 
 //Globals
 var localNode Node
-
+/*
+//error handling
 func check(e error) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
@@ -26,7 +30,15 @@ func check(e error) {
 		panic(e)
 	}
 }
-func catch(e error, dat []byte) {
+func catchbyte(e error, dat []byte) {
+	if e != nil {
+		fmt.Println("ERROR: ", e.Error())
+        fmt.Println("Periferal data: ", dat)
+        localNode.Alive = false
+		panic(e)
+	}
+}
+func catchstring(e error, dat string) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
         fmt.Println("Periferal data: ", dat)
@@ -61,13 +73,68 @@ func (msg Message) String() string{
 }
 //NodeTable structure
 type NodeTable struct{
-    startTime   float32
-    header      string
-    nodeDict   map[string]Node
+    startTime   time.Time
+    header      string 
+    nodeDict    map[string]*Node
+    ready       bool
 }
-
-
-
+func (table NodeTable)handleMsg(msg Message){
+    //case 1: Empty Table
+    if table.header == ""{
+        table.startTime = time.Now()
+        table.header = msg.msgDat
+        table.ready = false
+        //go broadcast
+    //case 2: Waiting Table with matching data
+    }
+    if msg.msgDat == table.header {
+          //Case 2.1: node is in table
+          if _,ok := table.nodeDict[msg.source]; ok{
+              newtime,err := time.Parse(time.StampMilli,msg.time)
+              catchstring(err, msg.String())
+              table.nodeDict[msg.source].ACK = true
+              table.nodeDict[msg.source].Alive = true
+              table.nodeDict[msg.source].hbTime = newtime
+          //Case 2.2: node is missing in table
+          } else {
+              newtime,err := time.Parse(time.StampMilli,msg.time)
+              catchstring(err,msg.String())
+              newNode := Node{
+                  IP: net.ParseIP(msg.source),
+                  ACK: true,
+                  Alive: true,
+                  hbTime: newtime,
+               }
+               table.nodeDict[msg.source] = &newNode
+               fmt.Printf("Node %s added to table \n", msg.source)
+          }
+          fmt.Printf("ACK %v", msg.source)
+          //Check Table
+    }
+}
+func (table NodeTable)handleHB(msg Message){
+    //Case 1: node is in table
+    if _,ok := table.nodeDict[msg.source]; ok{
+        newtime,err := time.Parse(time.StampMilli,msg.time)
+        catchstring(err, msg.String())
+        table.nodeDict[msg.source].Alive = true
+        table.nodeDict[msg.source].hbTime = newtime
+        
+    //Case 2: node is missing in table
+    } else {
+        newtime,err := time.Parse(time.StampMilli,msg.time)
+        catchstring(err,msg.String())
+        newNode := Node{
+            IP: net.ParseIP(msg.source),
+            ACK: false,
+            Alive: true,
+            hbTime: newtime,
+        }
+        table.nodeDict[msg.source] = &newNode
+        fmt.Printf("Node (%s) added to table\n", msg.source)
+    }
+}
+*/
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
     
@@ -85,7 +152,7 @@ func heartbeats(port int) {
         hb.time = time.Now().Format(time.StampMilli)
         
         data,err := json.Marshal(hb)
-        catch(err, data)
+        catchbyte(err, data)
         
         _, err = socket.Write(data)
         pass(err)
@@ -108,7 +175,7 @@ func hbListen(port int, hbChan chan<- Message){
     for localNode.Alive {
         var data []byte
         _,err = socket.Read(data)
-        catch(err,data)
+        catchbyte(err,data)
         
         msg := Message{}
         
@@ -134,7 +201,7 @@ func listen(port int, msgChan chan<- Message){
         var data []byte 
         
         _,err = socket.Read(data)
-        catch(err,data)
+        catchbyte(err,data)
         
         msg := Message{}
         
@@ -155,14 +222,11 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
     check(err)
     defer socket.Close()
     
-
-    
-    
     for localNode.Alive {
         select{
             case msg:= <-in:
                 data,err := json.Marshal(msg)
-                catch(err, data)
+                catchbyte(err, data)
                 
                 _, err = socket.Write(data)
                 pass(err)
@@ -215,7 +279,14 @@ func main() {
     
     //Parse Interface
     iface, err := net.InterfaceByName(arg)
-    check(err)
+    if err != nil{
+        ifaces, err := net.Interfaces()
+        fmt.Println("Available interfaces are...")  
+        for _,i := range ifaces{
+            fmt.Println(i.Name)
+        }
+        check(err)
+    }
     
     var ip net.IP
     addrs, err := iface.Addrs()
