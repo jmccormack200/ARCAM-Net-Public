@@ -42,7 +42,11 @@ func heartbeats(port int) {
         data,err := json.Marshal(hb)
         catchstring(err, hb.String())
         
-        _, err = socket.Write(data)
+        n,oobn, err := socket.WriteMsgUDP(data,nil,&net.UDPAddr{
+            IP:   BROADCASTIPv4,
+            Port: port,
+        })
+        fmt.Printf("%d::%d",n,oobn)
         pass(err)
         
         time.Sleep(1)
@@ -119,6 +123,7 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
         IP:   BROADCASTIPv4,
         Port: port,
     })
+    
     check(err)
     defer socket.Close()
     
@@ -128,8 +133,13 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
                 data,err := json.Marshal(msg)
                 catchstring(err, msg.String())
                 
-                _, err = socket.Write(data)
+                n,oobn, err := socket.WriteMsgUDP(data,nil,&net.UDPAddr{
+                    IP:   BROADCASTIPv4,
+                    Port: port,
+                })
+                fmt.Printf("%d::%d",n,oobn)
                 pass(err)
+                
             case <-q:
                 localNode.Alive = false
                 nodeTable.ready = false
