@@ -14,127 +14,15 @@ import (
     "time"
     "fmt"
     "flag"
-    "nodepkg"
-    "customerr"
+    // "nodepkg"
+    // "customerr"
+    "runtime"
     
 )
 
 //Globals
 var localNode Node
-/*
-//error handling
-func check(e error) {
-	if e != nil {
-		fmt.Println("ERROR: ", e.Error())
-        localNode.Alive = false
-		panic(e)
-	}
-}
-func catchbyte(e error, dat []byte) {
-	if e != nil {
-		fmt.Println("ERROR: ", e.Error())
-        fmt.Println("Periferal data: ", dat)
-        localNode.Alive = false
-		panic(e)
-	}
-}
-func catchstring(e error, dat string) {
-	if e != nil {
-		fmt.Println("ERROR: ", e.Error())
-        fmt.Println("Periferal data: ", dat)
-        localNode.Alive = false
-		panic(e)
-	}
-}
-
-func pass(e error) {
-	if e != nil {
-		fmt.Println("Ignoring error: ", e.Error())
-	}
-}
-
-
-//Node structure for node data
-type Node struct{
-    IP      net.IP
-    ACK     bool
-    Alive   bool
-    hbTime  time.Time
-}
-//Message structure for message data
-type Message struct{
-    source  string
-    msgType string
-    msgDat  string
-    time    string
-}
-func (msg Message) String() string{
-    return (msg.source + " " + msg.msgType + " " + msg.msgDat + " " + msg.time)
-}
-//NodeTable structure
-type NodeTable struct{
-    startTime   time.Time
-    header      string 
-    nodeDict    map[string]*Node
-    ready       bool
-}
-func (table NodeTable)handleMsg(msg Message){
-    //case 1: Empty Table
-    if table.header == ""{
-        table.startTime = time.Now()
-        table.header = msg.msgDat
-        table.ready = false
-        //go broadcast
-    //case 2: Waiting Table with matching data
-    }
-    if msg.msgDat == table.header {
-          //Case 2.1: node is in table
-          if _,ok := table.nodeDict[msg.source]; ok{
-              newtime,err := time.Parse(time.StampMilli,msg.time)
-              catchstring(err, msg.String())
-              table.nodeDict[msg.source].ACK = true
-              table.nodeDict[msg.source].Alive = true
-              table.nodeDict[msg.source].hbTime = newtime
-          //Case 2.2: node is missing in table
-          } else {
-              newtime,err := time.Parse(time.StampMilli,msg.time)
-              catchstring(err,msg.String())
-              newNode := Node{
-                  IP: net.ParseIP(msg.source),
-                  ACK: true,
-                  Alive: true,
-                  hbTime: newtime,
-               }
-               table.nodeDict[msg.source] = &newNode
-               fmt.Printf("Node %s added to table \n", msg.source)
-          }
-          fmt.Printf("ACK %v", msg.source)
-          //Check Table
-    }
-}
-func (table NodeTable)handleHB(msg Message){
-    //Case 1: node is in table
-    if _,ok := table.nodeDict[msg.source]; ok{
-        newtime,err := time.Parse(time.StampMilli,msg.time)
-        catchstring(err, msg.String())
-        table.nodeDict[msg.source].Alive = true
-        table.nodeDict[msg.source].hbTime = newtime
-        
-    //Case 2: node is missing in table
-    } else {
-        newtime,err := time.Parse(time.StampMilli,msg.time)
-        catchstring(err,msg.String())
-        newNode := Node{
-            IP: net.ParseIP(msg.source),
-            ACK: false,
-            Alive: true,
-            hbTime: newtime,
-        }
-        table.nodeDict[msg.source] = &newNode
-        fmt.Printf("Node (%s) added to table\n", msg.source)
-    }
-}
-*/
+var nodeTable NodeTable
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
     
@@ -211,6 +99,13 @@ func listen(port int, msgChan chan<- Message){
         msgChan<- msg
     }
 }
+// broadcast messages
+func broadcastMsg(msg Message, in chan<- Message){
+    for nodeTable.ready == false{
+        in <- msg
+        time.Sleep(0.5)
+    }
+}
 
 //Our Loop waiting for input or a keyboard interrupt
 func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
@@ -232,6 +127,7 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
                 pass(err)
             case <-q:
                 localNode.Alive = false
+                nodeTable.ready = false
                 return
         }
     }
@@ -243,9 +139,11 @@ func handleMessages(hbChan,msgChan<-chan Message){
         select{
             case hb := <-hbChan:
                 fmt.Println(hb)
+                nodeTable.handleHB(hb)
                 //handle heartbeats
             case msg := <-msgChan:
                 fmt.Println(msg)
+                nodeTable.handleMsg(msg)
                 //handle other messages
         }
     }  
@@ -255,10 +153,11 @@ func handleMessages(hbChan,msgChan<-chan Message){
 func fakeMessage(input chan<- Message, q <-chan os.Signal){
     var msg = Message{localNode.IP.String(), "FC", "915000", time.Now().Format(time.StampMilli)}
     
-    for{
+    for localNode.Alive{
         select{
             case <-q:
                 localNode.Alive = false
+                nodeTable.ready = false
                 return 
             default:
                 bufio.NewReader(os.Stdin).ReadBytes('\n')
@@ -306,18 +205,25 @@ func main() {
     localNode = Node{ip,true,true,time.Now()}
     
     //Channels
+    //msg in
     msgChan := make(chan Message)
     defer close(msgChan)
     
+    //hb in
     hbChan := make(chan Message)
     defer close(hbChan)
     
+    //quit channel
     q:= make(chan os.Signal, 1)
     signal.Notify(q,os.Interrupt)
     defer close(q)
     
+    //msg out
     in:= make(chan Message, 1)
     defer close(in)
+    
+    //runtime
+    runtime.GOMAXPROCS(runtime.NumCPU())
     
     //Goroutines
     go handleMessages(hbChan, msgChan)

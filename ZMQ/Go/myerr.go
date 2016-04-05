@@ -1,7 +1,7 @@
 
 
 
-package customerr
+package main
 
 
 //error handling
@@ -9,6 +9,7 @@ func check(e error) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
         localNode.Alive = false
+        nodeTable.ready = false
 		panic(e)
 	}
 }
@@ -17,6 +18,7 @@ func catchbyte(e error, dat []byte) {
 		fmt.Println("ERROR: ", e.Error())
         fmt.Println("Periferal data: ", dat)
         localNode.Alive = false
+        nodeTable.ready = false
 		panic(e)
 	}
 }
@@ -25,6 +27,7 @@ func catchstring(e error, dat string) {
 		fmt.Println("ERROR: ", e.Error())
         fmt.Println("Periferal data: ", dat)
         localNode.Alive = false
+        nodeTable.ready = false
 		panic(e)
 	}
 }
