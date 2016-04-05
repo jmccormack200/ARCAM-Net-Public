@@ -22,12 +22,13 @@ var localNode Node
 var nodeTable NodeTable
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
-    
     BROADCASTIPv4 := net.IPv4(192,168,200,255)
-    socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+    
+    udpAddr:=&net.UDPAddr{
         IP:   BROADCASTIPv4,
         Port: port,
-    })
+    }
+    socket, err := net.DialUDP("udp4", nil, udpAddr)
     check(err)
     defer socket.Close()
     
@@ -39,10 +40,7 @@ func heartbeats(port int) {
         data,err := json.Marshal(hb)
         catchstring(err, hb.String())
         
-        n,oobn, err := socket.WriteMsgUDP(data,nil,&net.UDPAddr{
-            IP:   BROADCASTIPv4,
-            Port: port,
-        })
+        n,oobn, err := socket.WriteMsgUDP(data,nil,udpAddr)
         fmt.Printf("%d::%d\n",n,oobn)
         pass(err)
         
