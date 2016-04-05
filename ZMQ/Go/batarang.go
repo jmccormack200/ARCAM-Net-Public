@@ -23,7 +23,7 @@ var nodeTable NodeTable
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
     
-    BROADCASTIPv4 := net.IPv4(255,255,255,255)
+    BROADCASTIPv4 := net.IPv4(192,168,200,255)
     socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
         IP:   BROADCASTIPv4,
         Port: port,
@@ -46,7 +46,7 @@ func heartbeats(port int) {
         fmt.Printf("%d::%d\n",n,oobn)
         pass(err)
         
-        time.Sleep(1)
+        time.Sleep(time.Second * 1)
     }
 }
 
@@ -116,7 +116,7 @@ func broadcastMsg(msg Message, in chan<- Message){
 
 //Our loop waiting for input or a keyboard interrupt
 func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
-    BROADCASTIPv4 := net.IPv4(255,255,255,255)
+    BROADCASTIPv4 := net.IPv4(192,168,200,255)
     
     udpAddr:=&net.UDPAddr{
         IP:   BROADCASTIPv4,
@@ -213,8 +213,6 @@ func main() {
         }
     }
     
-
-
     //Global Initialization initialization
     localNode = Node{ip,true,true,time.Now()}
     nodeTable = NodeTable{time.Now(),"", make(map[string]*Node), false, 30}
