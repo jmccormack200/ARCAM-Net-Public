@@ -14,10 +14,7 @@ import (
     "time"
     "fmt"
     "flag"
-    // "nodepkg"
-    // "customerr"
-    "runtime"
-    
+    "runtime"   
 )
 
 //Globals
@@ -46,7 +43,7 @@ func heartbeats(port int) {
             IP:   BROADCASTIPv4,
             Port: port,
         })
-        fmt.Printf("%d::%d",n,oobn)
+        fmt.Printf("%d::%d\n",n,oobn)
         pass(err)
         
         time.Sleep(1)
@@ -65,11 +62,11 @@ func hbListen(port int, hbChan chan<- Message){
 
     
     for localNode.Alive {
-        var data []byte
-        var oob []byte
+        data := make([]byte,1024)
+        oob := make([]byte, 1024)
             
         n,oobn,flags,addr,err := socket.ReadMsgUDP(data, oob)
-        fmt.Printf("%d::%d::%d::%v",n,oobn,flags,addr)
+        fmt.Printf("%d::%d::%d::%v\n",n,oobn,flags,addr)
         catchbyte(err,data)
         
         msg := Message{}
@@ -92,12 +89,12 @@ func listen(port int, msgChan chan<- Message){
     check(err)
     defer socket.Close()
     
-   for localNode.Alive{
-        var data []byte 
-        var oob []byte
+
+    for localNode.Alive{
+        data := make([]byte,1024)
             
-        n,oobn,flags,addr,err := socket.ReadMsgUDP(data, oob)
-        fmt.Printf("%d::%d::%d::%v",n,oobn,flags,addr)
+        n,addr,err := socket.ReadFrom(data)
+        fmt.Printf("%d::%v \n",n,addr)
         catchbyte(err,data)
         
         msg := Message{}
@@ -108,7 +105,8 @@ func listen(port int, msgChan chan<- Message){
         msgChan<- msg
     }
 }
-// broadcast messages
+
+// Broadcast messages
 func broadcastMsg(msg Message, in chan<- Message){
     for nodeTable.ready == false{
         in <- msg
@@ -116,13 +114,16 @@ func broadcastMsg(msg Message, in chan<- Message){
     }
 }
 
-//Our Loop waiting for input or a keyboard interrupt
+//Our loop waiting for input or a keyboard interrupt
 func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
     BROADCASTIPv4 := net.IPv4(255,255,255,255)
-    socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+    
+    udpAddr:=&net.UDPAddr{
         IP:   BROADCASTIPv4,
         Port: port,
-    })
+    }
+    
+    socket, err := net.DialUDP("udp4", nil, udpAddr)
     
     check(err)
     defer socket.Close()
@@ -130,14 +131,13 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
     for localNode.Alive {
         select{
             case msg:= <-in:
-                data,err := json.Marshal(msg)
+                data := make([]byte,1024)
+                
+                data,err = json.Marshal(msg)
                 catchstring(err, msg.String())
                 
-                n,oobn, err := socket.WriteMsgUDP(data,nil,&net.UDPAddr{
-                    IP:   BROADCASTIPv4,
-                    Port: port,
-                })
-                fmt.Printf("%d::%d",n,oobn)
+                n, err := socket.WriteTo(data, udpAddr)
+                fmt.Printf("%d \n",n)
                 pass(err)
                 
             case <-q:
@@ -163,7 +163,6 @@ func handleMessages(hbChan,msgChan<-chan Message){
         }
     }  
 }
-
 
 func fakeMessage(input chan<- Message, q <-chan os.Signal){
     var msg = Message{localNode.IP.String(), "FC", "915000", ""}
@@ -216,8 +215,9 @@ func main() {
     
 
 
-    //Local node initialization
+    //Global Initialization initialization
     localNode = Node{ip,true,true,time.Now()}
+    nodeTable = NodeTable{time.Now(),"", make(map[string]*Node), false, 30}
     
     //Channels
     //msg in
