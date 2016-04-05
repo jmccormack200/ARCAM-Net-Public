@@ -94,7 +94,7 @@ func listen(port int, msgChan chan<- Message){
         msg := Message{}
         
         err = json.Unmarshal(data,msg)
-        check (err)
+        catchbyte(err,data)
         
         msgChan<- msg
     }
