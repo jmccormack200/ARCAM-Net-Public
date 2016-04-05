@@ -10,6 +10,7 @@ func check(e error) {
 		fmt.Println("ERROR: ", e.Error())
         localNode.Alive = false
         nodeTable.ready = false
+        runtime.Goexit()
 		panic(e)
 	}
 }
@@ -19,6 +20,7 @@ func catchbyte(e error, dat []byte) {
         fmt.Println("Periferal data: ", dat)
         localNode.Alive = false
         nodeTable.ready = false
+        runtime.Goexit()
 		panic(e)
 	}
 }
@@ -28,6 +30,7 @@ func catchstring(e error, dat string) {
         fmt.Println("Periferal data: ", dat)
         localNode.Alive = false
         nodeTable.ready = false
+        runtime.Goexit()
 		panic(e)
 	}
 }
