@@ -28,7 +28,11 @@ func heartbeats(port int) {
         IP:   BROADCASTIPv4,
         Port: port,
     }
-    socket, err := net.DialUDP("udp4", nil, udpAddr)
+    
+    socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+        IP: net.IPv4zero,
+        Port: 0,
+    })
     check(err)
     defer socket.Close()
     
