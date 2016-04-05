@@ -26,7 +26,7 @@ var nodeTable NodeTable
 //Heart beats tell other nodes that current node is still alive
 func heartbeats(port int) {
     
-    BROADCASTIPv4 := net.IPv4(192,168,200,255)
+    BROADCASTIPv4 := net.IPv4(255,255,255,255)
     socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
         IP:   BROADCASTIPv4,
         Port: port,
@@ -40,7 +40,7 @@ func heartbeats(port int) {
         hb.time = time.Now().Format(time.StampMilli)
         
         data,err := json.Marshal(hb)
-        catchbyte(err, data)
+        catchstring(err, hb.String())
         
         _, err = socket.Write(data)
         pass(err)
@@ -109,7 +109,7 @@ func broadcastMsg(msg Message, in chan<- Message){
 
 //Our Loop waiting for input or a keyboard interrupt
 func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
-    BROADCASTIPv4 := net.IPv4(192,168,200,255)
+    BROADCASTIPv4 := net.IPv4(255,255,255,255)
     socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
         IP:   BROADCASTIPv4,
         Port: port,
@@ -121,7 +121,7 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
         select{
             case msg:= <-in:
                 data,err := json.Marshal(msg)
-                catchbyte(err, data)
+                catchstring(err, msg.String())
                 
                 _, err = socket.Write(data)
                 pass(err)
@@ -151,7 +151,7 @@ func handleMessages(hbChan,msgChan<-chan Message){
 
 
 func fakeMessage(input chan<- Message, q <-chan os.Signal){
-    var msg = Message{localNode.IP.String(), "FC", "915000", time.Now().Format(time.StampMilli)}
+    var msg = Message{localNode.IP.String(), "FC", "915000", ""}
     
     for localNode.Alive{
         select{
