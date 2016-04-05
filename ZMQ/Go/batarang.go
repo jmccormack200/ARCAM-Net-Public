@@ -103,7 +103,7 @@ func listen(port int, msgChan chan<- Message){
 func broadcastMsg(msg Message, in chan<- Message){
     for nodeTable.ready == false{
         in <- msg
-        time.Sleep(0.5)
+        time.Sleep(1)
     }
 }
 
@@ -143,7 +143,7 @@ func handleMessages(hbChan,msgChan<-chan Message){
                 //handle heartbeats
             case msg := <-msgChan:
                 fmt.Println(msg)
-                nodeTable.handleMsg(msg)
+                //nodeTable.handleMsg(msg)
                 //handle other messages
         }
     }  

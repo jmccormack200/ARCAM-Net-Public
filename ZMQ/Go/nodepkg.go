@@ -1,6 +1,11 @@
 
 
 package main
+import(
+    "time"
+    "net"
+    "fmt"
+)
 
 //Node structure for node data
 type Node struct{
@@ -25,24 +30,24 @@ type NodeTable struct{
     header      string 
     nodeDict    map[string]*Node
     ready       bool
-    timeout     float32 = 20.0f
+    timeout     int
 }
 
 //flushes table ack
 func (table NodeTable)flush(){
-    table.startTime = nil
+    table.startTime = time.Time{}
     table.header = ""
     table.ready = false
-    for k,_ := range table.nodeDict{
+    for k := range table.nodeDict{
         table.nodeDict[k].ACK = false
     }
 }
 
 //Checks to see if table is ready
-func (table NodeTable)checkIfReady(){
-    ready = true
+func (table NodeTable)checkIfReady() bool{
+    ready := true
     for k,v := range table.nodeDict{
-        if time.Now() - v.hbTime >= table.timeout{
+        if time.Now().Second() - v.hbTime.Second() >= table.timeout{
             v.Alive = false
             table.nodeDict[k] = v
         }      

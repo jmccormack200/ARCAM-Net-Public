@@ -3,6 +3,10 @@
 
 package main
 
+import(
+    "fmt"
+    "runtime"
+)
 
 //error handling
 func check(e error) {
