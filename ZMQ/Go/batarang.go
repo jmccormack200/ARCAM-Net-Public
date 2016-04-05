@@ -62,7 +62,7 @@ func hbListen(port int, hbChan chan<- Message){
     
     for localNode.Alive {
         var data []byte
-        _,err = socket.Read(data)
+        _,err = socke.ReadMsgUDP(data)
         catchbyte(err,data)
         
         msg := Message{}
@@ -87,8 +87,10 @@ func listen(port int, msgChan chan<- Message){
     
    for localNode.Alive{
         var data []byte 
-        
-        _,err = socket.Read(data)
+        var oob []byte
+            
+        n,oobn,flags,addr,err := socket.ReadMsgUDP(data, oob)
+        fmt.Printf("%d::%d::%d::%v::%e",n,oobn,flags,addr,err)
         catchbyte(err,data)
         
         msg := Message{}
