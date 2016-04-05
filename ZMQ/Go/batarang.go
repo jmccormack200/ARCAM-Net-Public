@@ -44,8 +44,8 @@ func heartbeats(port int) {
         data,err := json.Marshal(hb)
         catchstring(err, hb.String())
         
-        n,oobn, err := socket.WriteMsgUDP(data,nil,udpAddr)
-        fmt.Printf("%d::%d\n",n,oobn)
+        n, err := socket.WriteToUDP(data,udpAddr)
+        fmt.Printf("%d:\n",n)
         pass(err)
         
         time.Sleep(time.Second * 1)
@@ -65,10 +65,9 @@ func hbListen(port int, hbChan chan<- Message){
     
     for localNode.Alive {
         data := make([]byte,1024)
-        oob := make([]byte, 1024)
             
-        n,oobn,flags,addr,err := socket.ReadMsgUDP(data, oob)
-        fmt.Printf("%d::%d::%d::%v\n",n,oobn,flags,addr)
+        n,addr,err := socket.ReadFromUDP(data)
+        fmt.Printf("%d::%v\n",n,addr)
         catchbyte(err,data)
         
         msg := Message{}
@@ -80,7 +79,39 @@ func hbListen(port int, hbChan chan<- Message){
     }
     
 }
-
+//Our loop waiting for input or a keyboard interrupt
+func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
+    BROADCASTIPv4 := net.IPv4(192,168,200,255)
+    
+    udpAddr:=&net.UDPAddr{
+        IP:   BROADCASTIPv4,
+        Port: port,
+    }
+    
+    socket, err := net.DialUDP("udp4", nil, udpAddr)
+    
+    check(err)
+    defer socket.Close()
+    
+    for localNode.Alive {
+        select{
+            case msg:= <-in:
+                data := make([]byte,1024)
+                
+                data,err = json.Marshal(msg)
+                catchstring(err, msg.String())
+                
+                n, err := socket.WriteTo(data, udpAddr)
+                fmt.Printf("%d \n",n)
+                pass(err)
+                
+            case <-q:
+                localNode.Alive = false
+                nodeTable.ready = false
+                return
+        }
+    }
+}
 // Listen and pass messages on port to the msg channel
 func listen(port int, msgChan chan<- Message){
     
@@ -113,40 +144,6 @@ func broadcastMsg(msg Message, in chan<- Message){
     for nodeTable.ready == false{
         in <- msg
         time.Sleep(1)
-    }
-}
-
-//Our loop waiting for input or a keyboard interrupt
-func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
-    BROADCASTIPv4 := net.IPv4(192,168,200,255)
-    
-    udpAddr:=&net.UDPAddr{
-        IP:   BROADCASTIPv4,
-        Port: port,
-    }
-    
-    socket, err := net.DialUDP("udp4", nil, udpAddr)
-    
-    check(err)
-    defer socket.Close()
-    
-    for localNode.Alive {
-        select{
-            case msg:= <-in:
-                data := make([]byte,1024)
-                
-                data,err = json.Marshal(msg)
-                catchstring(err, msg.String())
-                
-                n, err := socket.WriteTo(data, udpAddr)
-                fmt.Printf("%d \n",n)
-                pass(err)
-                
-            case <-q:
-                localNode.Alive = false
-                nodeTable.ready = false
-                return
-        }
     }
 }
 //Loop sorting chanels to specific processes
