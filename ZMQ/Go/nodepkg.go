@@ -61,27 +61,27 @@ func (table NodeTable)checkIfReady() bool{
 }
 
 
-func (table NodeTable)handleMsg(msg Message, inputChan chan Message){
+func (table NodeTable)handleMsg(msg Message, outMsg chan Message){
     //case 1: Empty Table
     if table.header == ""{
         table.startTime = time.Now()
         table.header = msg.msgDat
         table.ready = false
-        go broadcastMsg(msg,inputChan)
+        go broadcastMsg(msg,outMsg)
     //case 2: Waiting Table with matching data
     }
     if msg.msgDat == table.header {
           //Case 2.1: node is in table
           if _,ok := table.nodeDict[msg.source]; ok{
               newtime,err := time.Parse(time.StampMilli,msg.time)
-              catchstring(err, msg.String())
+              catch(err, msg.String())
               table.nodeDict[msg.source].ACK = true
               table.nodeDict[msg.source].Alive = true
               table.nodeDict[msg.source].hbTime = newtime
           //Case 2.2: node is missing in table
           } else {
               newtime,err := time.Parse(time.StampMilli,msg.time)
-              catchstring(err,msg.String())
+              catch(err,msg.String())
               newNode := Node{
                   IP: net.ParseIP(msg.source),
                   ACK: true,
@@ -105,14 +105,14 @@ func (table NodeTable)handleHB(msg Message){
     //Case 1: node is in table
     if _,ok := table.nodeDict[msg.source]; ok{
         newtime,err := time.Parse(time.StampMilli,msg.time)
-        catchstring(err, msg.String())
+        catch(err, msg.String())
         table.nodeDict[msg.source].Alive = true
         table.nodeDict[msg.source].hbTime = newtime
         
     //Case 2: node is missing in table
     } else {
         newtime,err := time.Parse(time.StampMilli,msg.time)
-        catchstring(err,msg.String())
+        catch(err,msg.String())
         newNode := Node{
             IP: net.ParseIP(msg.source),
             ACK: false,

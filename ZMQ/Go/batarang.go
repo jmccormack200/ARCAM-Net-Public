@@ -42,7 +42,7 @@ func heartbeats(port int) {
         hb.time = time.Now().Format(time.StampMilli)
         
         data,err := json.Marshal(hb)
-        catchstring(err, hb.String())
+        catch(err, hb.String())
         
         n, err := socket.WriteToUDP(data,udpAddr)
         fmt.Printf("%d:\n",n)
@@ -62,20 +62,22 @@ func hbListen(port int, hbChan chan<- Message){
     check(err)
     defer socket.Close()
 
-    
+    data := make([]byte,1024)
     for localNode.Alive {
-        data := make([]byte,1024)
+       
             
         n,addr,err := socket.ReadFromUDP(data)
-        fmt.Printf("%d::%v\n",n,addr)
-        catchbyte(err,data)
-        
-        msg := Message{}
-        
-        err = json.Unmarshal(data,msg)
-        check (err)
-        
-        hbChan<- msg
+        if n > 0{
+            fmt.Printf("%d::%v\n",n,addr)
+            catch(err,data)
+            
+            msg := Message{}
+            
+            err = json.Unmarshal(data,msg)
+            check (err)
+            
+            hbChan<- msg
+        }
     }
     
 }
@@ -99,7 +101,7 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
                 data := make([]byte,1024)
                 
                 data,err = json.Marshal(msg)
-                catchstring(err, msg.String())
+                catch(err, msg.String())
                 
                 n, err := socket.WriteTo(data, udpAddr)
                 fmt.Printf("%d \n",n)
@@ -122,20 +124,21 @@ func listen(port int, msgChan chan<- Message){
     check(err)
     defer socket.Close()
     
-
+    data := make([]byte,1024)
     for localNode.Alive{
-        data := make([]byte,1024)
-            
+   
         n,addr,err := socket.ReadFrom(data)
-        fmt.Printf("%d::%v \n",n,addr)
-        catchbyte(err,data)
-        
-        msg := Message{}
-        
-        err = json.Unmarshal(data,msg)
-        catchbyte(err,data)
-        
-        msgChan<- msg
+        if n > 0 {
+            fmt.Printf("%d::%v \n",n,addr)
+            catch(err,data)
+            
+            msg := Message{}
+            
+            err = json.Unmarshal(data,msg)
+            catch(err,data)
+            
+            msgChan<- msg
+        }
     }
 }
 
@@ -147,7 +150,7 @@ func broadcastMsg(msg Message, in chan<- Message){
     }
 }
 //Loop sorting chanels to specific processes
-func handleMessages(hbChan,msgChan<-chan Message){
+func handleMessages(hbChan,msgChan<-chan Message,outMsg chan Message){
 
     for localNode.Alive{
         select{
@@ -157,7 +160,7 @@ func handleMessages(hbChan,msgChan<-chan Message){
                 //handle heartbeats
             case msg := <-msgChan:
                 fmt.Println(msg)
-                //nodeTable.handleMsg(msg)
+                nodeTable.handleMsg(msg,outMsg)
                 //handle other messages
         }
     }  
@@ -231,14 +234,14 @@ func main() {
     defer close(q)
     
     //msg out
-    in:= make(chan Message, 1)
-    defer close(in)
+    outMsg:= make(chan Message, 1)
+    defer close(outMsg)
     
     //runtime
     runtime.GOMAXPROCS(runtime.NumCPU())
     
     //Goroutines
-    go handleMessages(hbChan, msgChan)
+    go handleMessages(hbChan, msgChan,outMsg)
     //Heartbeats
     go heartbeats(hbPort)
     ///Listen for heartbeats
@@ -246,8 +249,8 @@ func main() {
     //listen for messages
     go listen(msgPort, msgChan) 
     //Outgoing messages
-    go sendLoop(msgPort,in,q)
+    go sendLoop(msgPort,outMsg,q)
     
-    fakeMessage(in,q)
+    fakeMessage(outMsg,q)
 }
 
