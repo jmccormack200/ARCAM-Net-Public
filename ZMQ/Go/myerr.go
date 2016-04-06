@@ -9,6 +9,7 @@ import(
 )
 
 //error handling
+//Throw error
 func check(e error) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
@@ -20,7 +21,7 @@ func check(e error) {
 		panic(e)
 	}
 }
-
+//Throw error and print input data that caused it
 func catch(e error, dat interface{}) {
 	if e != nil {
 		fmt.Println("ERROR: ", e.Error())
@@ -33,6 +34,7 @@ func catch(e error, dat interface{}) {
 		panic(e)
 	}
 }
+//Ignore error but print warning
 func pass(e error) {
 	if e != nil {
 		fmt.Println("Ignoring error: ", e.Error())

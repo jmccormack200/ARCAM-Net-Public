@@ -64,8 +64,7 @@ func hbListen(port int, hbChan chan<- Message){
 
     data := make([]byte,1024)
     for localNode.Alive {
-       
-            
+        
         n,addr,err := socket.ReadFromUDP(data)
         if n > 0{
             fmt.Printf("%d::%v\n",n,addr)
@@ -165,7 +164,7 @@ func handleMessages(hbChan,msgChan<-chan Message,outMsg chan Message){
         }
     }  
 }
-
+//Our debug message to send
 func fakeMessage(input chan<- Message, q <-chan os.Signal){
     var msg = Message{localNode.IP.String(), "FC", "915000", ""}
     
