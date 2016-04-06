@@ -1,5 +1,5 @@
 
-
+//My Node struct package
 package main
 import(
     "time"

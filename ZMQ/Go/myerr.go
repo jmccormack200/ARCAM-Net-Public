@@ -1,6 +1,6 @@
 
 
-
+//Custom error package
 package main
 
 import(
