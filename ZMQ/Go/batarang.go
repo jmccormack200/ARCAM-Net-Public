@@ -21,20 +21,7 @@ import (
 var localNode Node
 var nodeTable NodeTable
 //Heart beats tell other nodes that current node is still alive
-func heartbeats(port int) {
-    BROADCASTIPv4 := net.IPv4(192,168,200,255)
-    
-    udpAddr:=&net.UDPAddr{
-        IP:   BROADCASTIPv4,
-        Port: port,
-    }
-    
-    socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
-        IP: net.IPv4zero,
-        Port: 0,
-    })
-    check(err)
-    defer socket.Close()
+func heartbeats(socket net.Conn) {
     
     var hb = Message{localNode.IP.String(), "HB", "none", time.StampMilli}
     
@@ -44,66 +31,28 @@ func heartbeats(port int) {
         data,err := json.Marshal(hb)
         catch(err, hb.String())
         
-        n, err := socket.WriteToUDP(data,udpAddr)
-        fmt.Printf("%d:\n",n)
+        n, err := socket.Write(data)
+        fmt.Printf("%d bytes written \n",n)
         pass(err)
         
         time.Sleep(time.Second * 1)
     }
 }
 
-//hbListen listens on port for heartbeats and sends them through the channel
-func hbListen(port int, hbChan chan<- Message){
-    
-    socket, err := net.ListenUDP("udp4", &net.UDPAddr{
-        IP:   net.IPv4(192,168,200, 0),
-        Port: port,
-    })
-    check(err)
-    defer socket.Close()
-
-    data := make([]byte,1024)
-    for localNode.Alive {
-        
-        n,addr,err := socket.ReadFromUDP(data)
-        if n > 0{
-            fmt.Printf("%d::%v\n",n,addr)
-            catch(err,data)
-            
-            msg := Message{}
-            
-            err = json.Unmarshal(data,msg)
-            check (err)
-            
-            hbChan<- msg
-        }
-    }
-    
-}
 //Our loop waiting for input or a keyboard interrupt
-func sendLoop(port int, in <-chan Message, q <-chan os.Signal){   
-    BROADCASTIPv4 := net.IPv4(192,168,200,255)
-    
-    udpAddr:=&net.UDPAddr{
-        IP:   BROADCASTIPv4,
-        Port: port,
-    }
-    
-    socket, err := net.DialUDP("udp4", nil, udpAddr)
-    
-    check(err)
-    defer socket.Close()
-    
+func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){   
+
+
     for localNode.Alive {
         select{
             case msg:= <-in:
                 data := make([]byte,1024)
                 
-                data,err = json.Marshal(msg)
+                data,err := json.Marshal(msg)
                 catch(err, msg.String())
                 
-                n, err := socket.WriteTo(data, udpAddr)
-                fmt.Printf("%d \n",n)
+                n, err := socket.Write(data)
+                fmt.Printf("%d bytes written \n",n)
                 pass(err)
                 
             case <-q:
@@ -114,21 +63,14 @@ func sendLoop(port int, in <-chan Message, q <-chan os.Signal){
     }
 }
 // Listen and pass messages on port to the msg channel
-func listen(port int, msgChan chan<- Message){
-    
-    socket, err := net.ListenUDP("udp4", &net.UDPAddr{
-        IP:   net.IPv4(192,168,200, 0),
-        Port: port,
-    })
-    check(err)
-    defer socket.Close()
-    
+func listen(socket net.Conn, msgChan chan<- Message){
+
     data := make([]byte,1024)
     for localNode.Alive{
    
-        n,addr,err := socket.ReadFrom(data)
+        n,err := socket.Read(data)
         if n > 0 {
-            fmt.Printf("%d::%v \n",n,addr)
+            fmt.Printf("%d bytes read \n",n)
             catch(err,data)
             
             msg := Message{}
@@ -184,8 +126,6 @@ func fakeMessage(input chan<- Message, q <-chan os.Signal){
 
 
 func main() {
-    hbPort := 9001
-    msgPort := 9000
     arg := flag.Arg(0)
     if arg == ""{
         arg = "bat0"
@@ -239,16 +179,29 @@ func main() {
     //runtime
     runtime.GOMAXPROCS(runtime.NumCPU())
     
+    //connect sockets
+    BROADCASTipv4 := "192.168.200.255"
+    hbPort := ":9001"
+    msgPort := ":9000"
+    
+    hbsocket,err := net.Dial("udp4", BROADCASTipv4 + hbPort )
+    check(err)
+    defer hbsocket.Close()
+    
+    msgsocket,err := net.Dial("udp4", BROADCASTipv4 + msgPort)
+    check(err)
+    defer msgsocket.Close()
+    
     //Goroutines
     go handleMessages(hbChan, msgChan,outMsg)
     //Heartbeats
-    go heartbeats(hbPort)
+    go heartbeats(hbsocket)
     ///Listen for heartbeats
-    go hbListen(hbPort,hbChan)
+    go listen(hbsocket,hbChan)
     //listen for messages
-    go listen(msgPort, msgChan) 
+    go listen(msgsocket, msgChan) 
     //Outgoing messages
-    go sendLoop(msgPort,outMsg,q)
+    go sendLoop(msgsocket,outMsg,q)
     
     fakeMessage(outMsg,q)
 }
