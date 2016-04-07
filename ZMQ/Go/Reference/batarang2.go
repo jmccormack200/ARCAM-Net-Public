@@ -12,7 +12,7 @@
 // When it recevies a message with an ID it hasn't seen before, it broadcasts
 // that message to all connected peers.
 //
-package main
+package gophers
 
 import (
 	"bufio"

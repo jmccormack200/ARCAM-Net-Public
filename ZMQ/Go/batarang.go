@@ -19,10 +19,108 @@ import (
 )
 
 //Globals
-var localNode Node
-var nodeTable NodeTable
+var(
+    localNode       Node
+    nodeTable       NodeTable
+    lAddr           *net.UDPAddr
+    udpGaddrHB      *net.UDPAddr
+    udpGaddrMsg    *net.UDPAddr
+)
+//Constants
+const(
+    BROADCASTipv4 = "192.168.200.255"
+    hbPort = ":9001"
+    msgPort = ":9000"
+)
+
+func main() {
+    arg := flag.Arg(0)
+    if arg == ""{
+        arg = "bat0"
+    }
+    
+    //Parse Interface
+    iface, err := net.InterfaceByName(arg)
+    if err != nil{
+        ifaces, err := net.Interfaces()
+        fmt.Println("Available interfaces are...")  
+        for _,i := range ifaces{
+            fmt.Println(i.Name)
+        }
+        check(err)
+    }
+    
+    var ip net.IP
+    addrs, err := iface.Addrs()
+    check(err)
+    for _, addr:= range addrs{
+        switch v := addr.(type){
+            case *net.IPNet:
+                ip = v.IP
+            case *net.IPAddr:
+                ip = v.IP
+        }
+    }
+    
+    //Global Initialization initialization
+    localNode = Node{ip,true,true,time.Now()}
+    nodeTable = NodeTable{time.Now(),"", make(map[string]*Node), false, 30}
+    lAddr,err = net.ResolveUDPAddr("udp", ip.String())
+    check(err)
+    
+    //Channels
+    //msg in
+    msgChan := make(chan Message)
+    defer close(msgChan)
+    
+    //hb in
+    hbChan := make(chan Message)
+    defer close(hbChan)
+    
+    //quit channel
+    q:= make(chan os.Signal, 1)
+    signal.Notify(q,os.Interrupt)
+    defer close(q)
+    
+    //msg out
+    outMsg:= make(chan Message, 1)
+    defer close(outMsg)
+    
+    //runtime
+    runtime.GOMAXPROCS(runtime.NumCPU())
+   
+    //UDP Listeners
+    udpGaddrHB,err = net.ResolveUDPAddr("udp", BROADCASTipv4 + hbPort)
+    check(err)
+    udpGaddrMsg,err = net.ResolveUDPAddr("udp", BROADCASTipv4 + msgPort)
+    check(err)
+    
+    hbsocket,err := net.ListenMulticastUDP(BROADCASTipv4 + hbPort, iface, udpGaddrHB)
+    check(err)
+    defer hbsocket.Close()
+
+    msgsocket,err := net.ListenMulticastUDP(BROADCASTipv4 + msgPort, iface, udpGaddrMsg)
+    check(err)
+    defer msgsocket.Close()
+    
+    //Goroutines
+    go handleMessages(hbChan, msgChan,outMsg)
+    //Heartbeats
+    go heartbeats(hbsocket)
+    ///Listen for heartbeats
+    go listen(hbsocket,hbChan)
+    //listen for messages
+    go listen(msgsocket, msgChan) 
+    //Outgoing messages
+    go sendLoop(msgsocket,outMsg,q)
+    
+    fakeMessage(outMsg,q)
+}
+
 //Heart beats tell other nodes that current node is still alive
-func heartbeats(socket net.Conn) {
+func heartbeats(socket *net.UDPConn) {
+    
+    
     
     var hb = Message{localNode.IP.String(), "HB", "none", time.StampMilli}
     
@@ -32,7 +130,7 @@ func heartbeats(socket net.Conn) {
         data,err := json.Marshal(hb)
         catch(err, hb.String())
         
-        n, err := socket.Write(data)
+        n, err := socket.WriteToUDP(data, udpGaddrHB)
         fmt.Printf("%d bytes written \n",n)
         pass(err)
         
@@ -41,7 +139,7 @@ func heartbeats(socket net.Conn) {
 }
 
 //Our loop waiting for input or a keyboard interrupt
-func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){   
+func sendLoop(socket *net.UDPConn, in <-chan Message, q <-chan os.Signal){   
 
     for localNode.Alive {
         select{
@@ -50,7 +148,7 @@ func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){
                 data,err := json.Marshal(msg)
                 catch(err, msg.String())
                 
-                n, err := socket.Write(data)
+                n, err := socket.WriteToUDP(data,udpGaddrMsg)
                 fmt.Printf("%d bytes written \n",n)
                 pass(err)
                 
@@ -62,11 +160,11 @@ func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){
     }
 }
 // Listen and pass messages on port to the msg channel
-func listen(socket net.Conn, msgChan chan<- Message){
+func listen(socket *net.UDPConn, msgChan chan<- Message){
     
-    
+    data := make([]byte, 1024)
     for localNode.Alive{
-   
+        
         n,err := socket.Read(data)
         if n > 0 {
             fmt.Printf("%d bytes read \n",n)
@@ -74,7 +172,7 @@ func listen(socket net.Conn, msgChan chan<- Message){
             
             msg := Message{}
             
-            err = json.Unmarshal(data,msg)
+            err = json.Unmarshal(data[0:n],msg)
             catch(err,data)
             
             msgChan<- msg
@@ -86,7 +184,7 @@ func listen(socket net.Conn, msgChan chan<- Message){
 func broadcastMsg(msg Message, in chan<- Message){
     for nodeTable.ready == false{
         in <- msg
-        time.Sleep(1)
+        time.Sleep(time.Millisecond * 1)
     }
 }
 //Loop sorting chanels to specific processes
@@ -121,87 +219,5 @@ func fakeMessage(input chan<- Message, q <-chan os.Signal){
                 input <- msg
         }
     }
-}
-
-
-func main() {
-    arg := flag.Arg(0)
-    if arg == ""{
-        arg = "bat0"
-    }
-    
-    //Parse Interface
-    iface, err := net.InterfaceByName(arg)
-    if err != nil{
-        ifaces, err := net.Interfaces()
-        fmt.Println("Available interfaces are...")  
-        for _,i := range ifaces{
-            fmt.Println(i.Name)
-        }
-        check(err)
-    }
-    
-    var ip net.IP
-    addrs, err := iface.Addrs()
-    check(err)
-    for _, addr:= range addrs{
-        switch v := addr.(type){
-            case *net.IPNet:
-                ip = v.IP
-            case *net.IPAddr:
-                ip = v.IP
-        }
-    }
-    
-    //Global Initialization initialization
-    localNode = Node{ip,true,true,time.Now()}
-    nodeTable = NodeTable{time.Now(),"", make(map[string]*Node), false, 30}
-    
-    //Channels
-    //msg in
-    msgChan := make(chan Message)
-    defer close(msgChan)
-    
-    //hb in
-    hbChan := make(chan Message)
-    defer close(hbChan)
-    
-    //quit channel
-    q:= make(chan os.Signal, 1)
-    signal.Notify(q,os.Interrupt)
-    defer close(q)
-    
-    //msg out
-    outMsg:= make(chan Message, 1)
-    defer close(outMsg)
-    
-    //runtime
-    runtime.GOMAXPROCS(runtime.NumCPU())
-    
-    //connect sockets
-    BROADCASTipv4 := "192.168.200.255"
-    hbPort := ":9001"
-    msgPort := ":9000"
-    
-    hbsocket,err := net.Dial("udp4", BROADCASTipv4 + hbPort )
-    check(err)
-    defer hbsocket.Close()
-    
-    msgsocket,err := net.Dial("udp4", BROADCASTipv4 + msgPort)
-    check(err)
-    defer msgsocket.Close()
-    
-    //Goroutines
-    go handleMessages(hbChan, msgChan,outMsg)
-    //Heartbeats
-    go heartbeats(hbsocket)
-    ///Listen for heartbeats
-    go listen(hbsocket,hbChan)
-    //listen for messages
-    go listen(msgsocket, msgChan) 
-    //Outgoing messages
-    go sendLoop(msgsocket,outMsg,q)
-    
-    fakeMessage(outMsg,q)
 }
 
