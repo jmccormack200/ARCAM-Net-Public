@@ -14,7 +14,8 @@ import (
     "time"
     "fmt"
     "flag"
-    "runtime"   
+    "runtime" 
+    
 )
 
 //Globals
@@ -42,12 +43,10 @@ func heartbeats(socket net.Conn) {
 //Our loop waiting for input or a keyboard interrupt
 func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){   
 
-
     for localNode.Alive {
         select{
             case msg:= <-in:
-                data := make([]byte,1024)
-                
+                           
                 data,err := json.Marshal(msg)
                 catch(err, msg.String())
                 
@@ -64,8 +63,8 @@ func sendLoop(socket net.Conn, in <-chan Message, q <-chan os.Signal){
 }
 // Listen and pass messages on port to the msg channel
 func listen(socket net.Conn, msgChan chan<- Message){
-
-    data := make([]byte,1024)
+    
+    
     for localNode.Alive{
    
         n,err := socket.Read(data)

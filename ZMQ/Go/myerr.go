@@ -6,6 +6,7 @@ package main
 import(
     "fmt"
     "runtime"
+    "github.com/tendermint/go-p2p"
 )
 
 //error handling
