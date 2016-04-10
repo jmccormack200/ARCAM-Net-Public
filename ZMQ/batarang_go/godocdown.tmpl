@@ -1,0 +1,23 @@
+{{ .Emit }}
+// Emit the standard documentation (what godocdown would emit without a template)
+
+{{ .EmitHeader }}
+// Emit the package name and an import line (if one is present/needed)
+
+{{ .EmitSynopsis }}
+// Emit the package declaration
+
+{{ .EmitUsage }}
+// Emit package usage, which includes a constants section, a variables section,
+// a functions section, and a types section. In addition, each type may have its own constant,
+// variable, and/or function/method listing.
+
+{{ if .IsCommand  }} ... {{ end }}
+// A boolean indicating whether the given package is a command or a plain package
+
+{{ .Name }}
+// The name of the package/command (string)
+
+{{ .ImportPath }}
+// The import path for the package (string)
+// (This field will be the empty string if godocdown is unable to guess it)
