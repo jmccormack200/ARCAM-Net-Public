@@ -17,7 +17,7 @@ import (
 var (
 	localNode   Node
 	nodeTable   NodeTable
-	lAddr       *net.UDPAddr
+
 	udpGaddrHB  *net.UDPAddr
 	udpGaddrMsg *net.UDPAddr
 )
@@ -60,8 +60,10 @@ func main() {
 	//Global Initialization initialization
 	localNode = Node{ip, true, true, time.Now()}
 	nodeTable = NodeTable{time.Now(), "", make(map[string]*Node), false, 30}
-	lAddr, err = net.ResolveUDPAddr("udp", ip.String())
-	check(err)
+	// mlAddr, err = net.ResolveUDPAddr("udp", ip.String() +msgPort)
+	// catch(err,ip.String())
+    // hlAddr, err = net.ResolveUDPAddr("udp", ip.String() +hbPort)
+	// catch(err,ip.String())
 
 	//Channels
 	//msg in
@@ -156,7 +158,8 @@ func listen(socket *net.UDPConn, msgChan chan<- Message) {
 	data := make([]byte, 1024)
 	for localNode.Alive {
 
-		n, err := socket.Read(data)
+		n,addr, err := socket.ReadFromUDP(data)
+        fmt.Println("Message from ", addr)
 		if n > 0 {
 			fmt.Printf("%d bytes read \n", n)
 			catch(err, data)
