@@ -50,10 +50,8 @@ func main() {
 	check(err)
 	for _, addr := range addrs {
 		switch v := addr.(type) {
-		case *net.IPNet:
-			ip = v.IP
-		case *net.IPAddr:
-			ip = v.IP
+            case *net.IPAddr:
+                ip = v.IP
 		}
 	}
 
