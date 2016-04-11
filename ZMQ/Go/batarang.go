@@ -55,8 +55,6 @@ func main() {
     check(err)
     for _, addr:= range addrs{
         switch v := addr.(type){
-            case *net.IPNet:
-                ip = v.IP
             case *net.IPAddr:
                 ip = v.IP
         }
@@ -65,7 +63,7 @@ func main() {
     //Global Initialization initialization
     localNode = Node{ip,true,true,time.Now()}
     nodeTable = NodeTable{time.Now(),"", make(map[string]*Node), false, 30}
-    lAddr,err = net.ResolveUDPAddr("udp", ip.String())
+    lAddr,err = net.ResolveUDPAddr("udp", ip.String()+":0")
     check(err)
     
     //Channels
